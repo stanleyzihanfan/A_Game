@@ -82,8 +82,8 @@ function addVoxel(x, y, z) {
     scene.add(edges);
 }
 
-// Fetch voxel positions from Flask and build the scene
-fetch("/state")
+// Fetch voxel positions from Flask and build the initial scene
+fetch("/init")
     .then(r => r.json())
     .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
     .catch(() => {

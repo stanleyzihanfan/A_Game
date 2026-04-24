@@ -27,7 +27,7 @@ try:
         from flask import Response
         return Response(HTML, mimetype="text/html")
 
-    @app.route("/state")
+    @app.route("/init")
     def state():
         return jsonify({"voxels": VOXELS})
     #WebSocket
