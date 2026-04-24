@@ -27,6 +27,7 @@ try:
         return jsonify({"voxels": VOXELS})
 
     port=5000
+    #Find open port
     def find_port():
         global port
         while (True):
@@ -55,14 +56,11 @@ try:
     )
 
     print("Starting tunnel, waiting for URL...")
+    #Capture & print full output
     for line in tunnelProc.stdout: #type:ignore
         text = line.decode("utf-8", errors="replace").strip()
         if text:
             print(text)
-        # match = re.search(r"https://[a-z0-9\-]+\.trycloudflare\.com", text)
-        # if match:
-        #     print("\n✅ Open this in your browser:", match.group(0))
-        #     break  # stop blocking once we have the URL; tunnel keeps running
 except:
     print("Exeption caut in server")
     print("Gracefully shutting down server...")
