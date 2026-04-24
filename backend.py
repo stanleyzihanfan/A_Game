@@ -16,7 +16,12 @@ try:
         [1, 1, 0], [1, 2, 0],               # a column up
         [0, 0, 1], [2, 0, 2],               # scattered
     ]
+    #voxels to add
+    add=[]
+    #voxels to remove
+    remove=[]
 
+    #Flask routes
     @app.route("/")
     def index():
         from flask import Response
@@ -25,7 +30,16 @@ try:
     @app.route("/state")
     def state():
         return jsonify({"voxels": VOXELS})
+    #WebSocket
+    sock=Sock(app)
+    @sock.route("/ws")
+    def ws():
+        if add:
+            return jsonify({"op":"ADD_VOXELS","voxels":add})
+        if remove:
+            return jsonify({"op":"REMOVE_VOXELS","voxels":add})
 
+    #Flask server launch sequence
     port=5000
     #Find open port
     def find_port():
