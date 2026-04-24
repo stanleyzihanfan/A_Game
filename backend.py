@@ -30,15 +30,15 @@ try:
     def find_port():
         global port
         while (True):
-          with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
-            try:
-              s.bind(("",port))
-              break
-            except OSError:
-              print(f"Port {port} already in use, trying {port+1} next")
-              print()
-              port+=1;
-              continue
+            with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
+                try:
+                    s.bind(("",port))
+                    break
+                except OSError:
+                    print(f"Port {port} already in use, trying {port+1} next")
+                    print()
+                    port+=1
+                    continue
     find_port()
     print(f"Port {port} open, launching server")
     flaskProc=make_server("0.0.0.0",port,app)
