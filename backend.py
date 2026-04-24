@@ -31,13 +31,18 @@ try:
     def state():
         return jsonify({"voxels": VOXELS})
     #WebSocket
-    sock=Sock(app)
-    @sock.route("/ws")
+    ws=Sock(app)
+    #Send to client
+    @ws.route("/ws")
     def ws():
         if add:
             return jsonify({"op":"ADD_VOXELS","voxels":add})
         if remove:
             return jsonify({"op":"REMOVE_VOXELS","voxels":add})
+    #Receive from client
+    @ws.route("/echo")
+    def echo(ws):
+        
 
     #Flask server launch sequence
     port=5000
