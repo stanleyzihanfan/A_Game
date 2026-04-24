@@ -41,7 +41,7 @@ HTML = r"""
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ── Scene setup ──────────────────────────────────────────────────────────────
+// -- Scene setup --------------------------------------------------------------
 const scene    = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);   // sky blue
 //scene.fog        = new THREE.Fog(0x87ceeb, 20, 80);
@@ -54,17 +54,17 @@ document.body.appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(5, 4, 10);   // start position
 
-// ── Lighting ─────────────────────────────────────────────────────────────────
+// -- Lighting -----------------------------------------------------------------
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 sun.position.set(10, 20, 10);
 sun.castShadow = true;
 scene.add(sun);
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-// ── Grid floor ───────────────────────────────────────────────────────────────
+// -- Grid floor ---------------------------------------------------------------
 scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
 
-// ── Voxel rendering ──────────────────────────────────────────────────────────
+// -- Voxel rendering ----------------------------------------------------------
 const voxelGeo = new THREE.BoxGeometry(1, 1, 1);
 const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
 const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
@@ -91,7 +91,7 @@ fetch("/state")
     [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
   });
 
-// ── First-person camera controls ─────────────────────────────────────────────
+// -- First-person camera controls ---------------------------------------------
 //Configs
 const keys = {};
 let yaw = 0, pitch = 0;
@@ -144,7 +144,7 @@ function updateCamera(dt) {
   if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
 }
 
-// ── Render loop ───────────────────────────────────────────────────────────────
+// -- Render loop ---------------------------------------------------------------
 let last = performance.now();
 function loop() {
   requestAnimationFrame(loop);
@@ -156,7 +156,7 @@ function loop() {
 }
 loop();
 
-// ── Resize handler ────────────────────────────────────────────────────────────
+// -- Resize handler ------------------------------------------------------------
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
