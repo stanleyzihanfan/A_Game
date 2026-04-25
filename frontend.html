@@ -91,6 +91,11 @@ fetch("/init")
         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
     });
 
+//Testing send to backend
+const socketUrl=location.href.replace(/^http/,"ws")+"ws";
+const socket=new WebSocket(socketUrl);
+socket.send("Testing from JS");
+
 // -- First-person camera controls ---------------------------------------------
 //Configs
 const keys = {};

@@ -1,6 +1,7 @@
 import subprocess, time, re, threading, socket, traceback
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_sock import Sock
 from werkzeug.serving import make_server
 
 tunnelProc=None
@@ -31,18 +32,20 @@ try:
     def state():
         return jsonify({"voxels": VOXELS})
     #WebSocket
-    ws=Sock(app)
+    wSocket=Sock(app)
     #Send to client
-    @ws.route("/ws")
-    def ws():
+    @wSocket.route("/client")
+    def client():
         if add:
             return jsonify({"op":"ADD_VOXELS","voxels":add})
         if remove:
             return jsonify({"op":"REMOVE_VOXELS","voxels":add})
     #Receive from client
-    @ws.route("/echo")
-    def echo(ws):
-        
+    @wSocket.route("/server")
+    def server(ws):
+        while (True):
+            data=ws.receive()
+            print(data)
 
     #Flask server launch sequence
     port=5000
