@@ -45,7 +45,8 @@ try:
     def server(ws):
         while (True):
             data=ws.receive()
-            print(data)
+            if data:
+                print(data)
 
     #Flask server launch sequence
     port=5000
@@ -83,9 +84,16 @@ try:
         text = line.decode("utf-8", errors="replace").strip()
         if text:
             print(text)
-except:
-    print("Exeption caut in server")
+#Cleanly catch KeyboardInterupt(user stopping server)
+except KeyboardInterrupt:
+    print("Ctrl+C Received,")
+except BaseException as e:
+    print("Exeption caut in server:")
+    traceback.print_exc()
+finally:
     print("Gracefully shutting down server...")
-    tunnelProc.terminate()
-    flaskProc.shutdown()
-    tunnelProc.wait()
+    if flaskProc is not None:
+        flaskProc.shutdown()
+    if tunnelProc is not None:
+        tunnelProc.terminate()
+        tunnelProc.wait()
