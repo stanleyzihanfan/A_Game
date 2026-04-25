@@ -92,9 +92,11 @@ fetch("/init")
     });
 
 //Testing send to backend
-const socketUrl=location.href.replace(/^http/,"ws")+"ws";
-const socket=new WebSocket(socketUrl);
-socket.send("Testing from JS");
+const socketUrl=location.href.replace(/^http/,"ws")+"server";
+const socket= new WebSocket(socketUrl);
+socket.onopen=()=>{
+    socket.send("Testing from JS");
+}
 
 // -- First-person camera controls ---------------------------------------------
 //Configs
