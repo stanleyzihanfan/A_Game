@@ -56,6 +56,22 @@ HTML = r"""
             socket.send("Test");
         }
     }
+    const originalWarn=console.warn;
+    console.warn=function(...args){
+        const timestamp = new Date().toISOString();
+        originalWarn.apply([timestamp,...args]);
+        if (connected){
+            socket.send("Test");
+        }
+    }
+    const originalError=console.error;
+    console.error=function(...args){
+        const timestamp = new Date().toISOString();
+        originalError.apply([timestamp,...args]);
+        if (connected){
+            socket.send("Test");
+        }
+    }
     // -- Scene setup --------------------------------------------------------------
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb); // sky blue
