@@ -44,34 +44,47 @@ HTML = r"""
     const socketUrl=location.href.replace(/^http/,"ws")+"server";
     const socket= new WebSocket(socketUrl);
     let connected=false;
+    let socketBuffer=[];
     socket.onopen=()=>{
         connected=true;
+        socketBuffer.forEach(element => {
+            socket.send(element);
+        });
     }
     //Override console functions
     const originalLog=console.log;
     console.log=function(...args){
         const timestamp = new Date().toISOString();
-        originalLog.apply([timestamp,...args]);
+        originalLog.apply(console,[timestamp,...args]);
         if (connected){
-            socket.send("Test");
+            socket.send("TestLog");
+        }else{
+            socketBuffer.push("TestLog");
         }
     }
     const originalWarn=console.warn;
     console.warn=function(...args){
         const timestamp = new Date().toISOString();
-        originalWarn.apply([timestamp,...args]);
+        originalWarn.apply(console,[timestamp,...args]);
         if (connected){
-            socket.send("Test");
+            socket.send("TestWarn");
+        }else{
+            socketBuffer.push("TestWarn");
         }
     }
     const originalError=console.error;
     console.error=function(...args){
         const timestamp = new Date().toISOString();
-        originalError.apply([timestamp,...args]);
+        originalError.apply(console,[timestamp,...args]);
         if (connected){
-            socket.send("Test");
+            socket.send("TestErr");
+        }else{
+            socketBuffer.push("TestErr");
         }
     }
+    console.log("This is a log");
+    console.warn("This is a warning");
+    console.error("This is an error");
     // -- Scene setup --------------------------------------------------------------
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb); // sky blue
