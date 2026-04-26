@@ -40,6 +40,7 @@ try:
             return jsonify({"op":"ADD_VOXELS","voxels":add})
         if remove:
             return jsonify({"op":"REMOVE_VOXELS","voxels":add})
+    
     #Receive from client
     @wSocket.route("/server")
     def server(ws):
