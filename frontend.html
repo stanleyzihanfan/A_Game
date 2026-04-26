@@ -41,134 +41,142 @@ HTML = r"""
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// -- Scene setup --------------------------------------------------------------
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // sky blue
-//scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
+    const socketUrl=location.href.replace(/^http/,"ws")+"server";
+    const socket= new WebSocket(socketUrl);
+    let connected=false;
+    socket.onopen=()=>{
+        connected=true;
+    }
+    //Override console functions
+    const originalLog=console.log;
+    console.log=function(...args){
+        const timestamp = new Date().toISOString();
+        originalLog.apply([timestamp,...args]);
+        if (connected){
+            socket.send("Test");
+        }
+    }
+    // -- Scene setup --------------------------------------------------------------
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // sky blue
+    //scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(5, 4, 10); // start position
-
-// -- Lighting -----------------------------------------------------------------
-const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-sun.position.set(10, 20, 10);
-sun.castShadow = true;
-scene.add(sun);
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-
-// -- Grid floor ---------------------------------------------------------------
-scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
-
-// -- Voxel rendering ----------------------------------------------------------
-const voxelGeo = new THREE.BoxGeometry(1, 1, 1);
-const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
-const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
-
-function addVoxel(x, y, z) {
-    // Solid cube
-    const mesh = new THREE.Mesh(voxelGeo, voxelMat);
-    mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    // Wireframe outline
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
-    edges.position.copy(mesh.position);
-    scene.add(edges);
-}
-
-// Fetch voxel positions from Flask and build the initial scene
-fetch("/init")
-    .then(r => r.json())
-    .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
-    .catch(() => {
-        // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
-        [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
-    });
-
-//Testing send to backend
-const socketUrl=location.href.replace(/^http/,"ws")+"server";
-const socket= new WebSocket(socketUrl);
-socket.onopen=()=>{
-    socket.send("Testing from JS");
-}
-
-// -- First-person camera controls ---------------------------------------------
-//Configs
-const keys = {};
-let yaw = 0, pitch = 0;
-let Speed = 8; // units per second
-const SCROLL_DIALATION=0.005;
-const SENSITIVITY = 0.002; // radians per pixel
-
-document.addEventListener("keydown", e => { keys[e.code] = true;    e.preventDefault(); });
-document.addEventListener("keyup",     e => { keys[e.code] = false; });
-
-// Pointer lock
-renderer.domElement.addEventListener("click", () => {
-    renderer.domElement.requestPointerLock();
-});
-//Set camera look direction
-document.addEventListener("mousemove", e => {
-    if (document.pointerLockElement !== renderer.domElement) return;
-    yaw     -= e.movementX * SENSITIVITY;
-    pitch -= e.movementY * SENSITIVITY;
-    pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
-});
-//Scroll wheel to control speed
-document.addEventListener("wheel", e => {
-    Speed-=e.deltaY*SCROLL_DIALATION,0;
-    Speed=Math.max(Speed,0);
-    document.getElementById("debug").textContent="Speed: "+Speed
-})
-
-// Build a direction vector from yaw/pitch (Minecraft spectator style)
-const forward = new THREE.Vector3();
-const right = new THREE.Vector3();
-const up = new THREE.Vector3(0, 1, 0);
-
-function updateCamera(dt) {
-    // Rotation: yaw around world Y, pitch around local X
-    camera.rotation.order = "YXZ";
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
-
-    // Movement directions derived from yaw only (no tilt on strafe/forward)
-    forward.set(Math.sin(yaw), 0, Math.cos(yaw)).negate();
-    right.crossVectors(forward, up).normalize();
-
-    const dist = Speed * dt;
-    if (keys["KeyW"]) camera.position.addScaledVector(forward, dist);
-    if (keys["KeyS"]) camera.position.addScaledVector(forward, -dist);
-    if (keys["KeyA"]) camera.position.addScaledVector(right, -dist);
-    if (keys["KeyD"]) camera.position.addScaledVector(right, dist);
-    if (keys["Space"]) camera.position.y += dist;
-    if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
-}
-
-// -- Render loop ---------------------------------------------------------------
-let last = performance.now();
-function loop() {
-    requestAnimationFrame(loop);
-    const now = performance.now();
-    const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
-    last = now;
-    updateCamera(dt);
-    renderer.render(scene, camera);
-}
-loop();
-
-// -- Resize handler ------------------------------------------------------------
-window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(5, 4, 10); // start position
+
+    // -- Lighting -----------------------------------------------------------------
+    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+    sun.position.set(10, 20, 10);
+    sun.castShadow = true;
+    scene.add(sun);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+    // -- Grid floor ---------------------------------------------------------------
+    scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
+
+    // -- Voxel rendering ----------------------------------------------------------
+    const voxelGeo = new THREE.BoxGeometry(1, 1, 1);
+    const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
+    const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
+
+    function addVoxel(x, y, z) {
+        // Solid cube
+        const mesh = new THREE.Mesh(voxelGeo, voxelMat);
+        mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        // Wireframe outline
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
+        edges.position.copy(mesh.position);
+        scene.add(edges);
+    }
+
+    // Fetch voxel positions from Flask and build the initial scene
+    fetch("/init")
+        .then(r => r.json())
+        .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
+        .catch(() => {
+            // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
+            [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
+        });
+
+    // -- First-person camera controls ---------------------------------------------
+    //Configs
+    const keys = {};
+    let yaw = 0, pitch = 0;
+    let Speed = 8; // units per second
+    const SCROLL_DIALATION=0.005;
+    const SENSITIVITY = 0.002; // radians per pixel
+
+    document.addEventListener("keydown", e => { keys[e.code] = true;    e.preventDefault(); });
+    document.addEventListener("keyup",     e => { keys[e.code] = false; });
+
+    // Pointer lock
+    renderer.domElement.addEventListener("click", () => {
+        renderer.domElement.requestPointerLock();
+    });
+    //Set camera look direction
+    document.addEventListener("mousemove", e => {
+        if (document.pointerLockElement !== renderer.domElement) return;
+        yaw     -= e.movementX * SENSITIVITY;
+        pitch -= e.movementY * SENSITIVITY;
+        pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+    });
+    //Scroll wheel to control speed
+    document.addEventListener("wheel", e => {
+        Speed-=e.deltaY*SCROLL_DIALATION,0;
+        Speed=Math.max(Speed,0);
+        document.getElementById("debug").textContent="Speed: "+Speed
+    })
+
+    // Build a direction vector from yaw/pitch (Minecraft spectator style)
+    const forward = new THREE.Vector3();
+    const right = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
+
+    function updateCamera(dt) {
+        // Rotation: yaw around world Y, pitch around local X
+        camera.rotation.order = "YXZ";
+        camera.rotation.y = yaw;
+        camera.rotation.x = pitch;
+
+        // Movement directions derived from yaw only (no tilt on strafe/forward)
+        forward.set(Math.sin(yaw), 0, Math.cos(yaw)).negate();
+        right.crossVectors(forward, up).normalize();
+
+        const dist = Speed * dt;
+        if (keys["KeyW"]) camera.position.addScaledVector(forward, dist);
+        if (keys["KeyS"]) camera.position.addScaledVector(forward, -dist);
+        if (keys["KeyA"]) camera.position.addScaledVector(right, -dist);
+        if (keys["KeyD"]) camera.position.addScaledVector(right, dist);
+        if (keys["Space"]) camera.position.y += dist;
+        if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
+    }
+
+    // -- Render loop ---------------------------------------------------------------
+    let last = performance.now();
+    function loop() {
+        requestAnimationFrame(loop);
+        const now = performance.now();
+        const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
+        last = now;
+        updateCamera(dt);
+        renderer.render(scene, camera);
+    }
+    loop();
+
+    // -- Resize handler ------------------------------------------------------------
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 </script>
 </body>
 </html>
