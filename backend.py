@@ -1,4 +1,4 @@
-import subprocess, time, re, threading, socket, traceback
+import subprocess, time, re, threading, socket, traceback, json
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sock import Sock
@@ -46,7 +46,29 @@ try:
     def server(ws):
         while (True):
             data=ws.receive()
-            if data:
+            data=json.loads(data)
+            if data["op"]=="log":
+                for i in range(len(data["params"])):
+                    if (i==0):
+                        print(data["params"][i],end='')
+                    else:
+                        print(data["params"][i],end=' ')
+                print()
+            elif data["op"]=="warn":
+                for i in range(len(data["params"])):
+                    if (i==0):
+                        print("\033[33m"+data["params"][i]+"\033[0m",end='')
+                    else:
+                        print("\033[33m"+data["params"][i]+"\033[0m",end=' ')
+                print()
+            elif data["op"]=="error":
+                for i in range(len(data["params"])):
+                    if (i==0):
+                        print("\033[31m"+data["params"][i]+"\033[0m",end='')
+                    else:
+                        print("\033[31m"+data["params"][i]+"\033[0m",end=' ')
+                print()
+            else:
                 print(data)
 
     #Flask server launch sequence

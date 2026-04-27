@@ -69,7 +69,7 @@ HTML = r"""
     console.log=function(...args){
         const timestamp = formatCustom(new Date())
         originalLog.apply(console,[timestamp,...args]);
-        const logsend=JSON.stringify({"op":"log","params":[timestamp,...args]})
+        const logsend=JSON.stringify({"op":"log","params":[timestamp,"[Client]",...args]})
         if (connected){
             socket.send(logsend);
         }else{
@@ -80,7 +80,7 @@ HTML = r"""
     console.warn=function(...args){
         const timestamp = formatCustom(new Date())
         originalWarn.apply(console,[timestamp,...args]);
-        const logsend=JSON.stringify({"op":"warn","params":[timestamp,...args]})
+        const logsend=JSON.stringify({"op":"warn","params":[timestamp,"[Client]",...args]})
         if (connected){
             socket.send(logsend);
         }else{
@@ -91,7 +91,7 @@ HTML = r"""
     console.error=function(...args){
         const timestamp = formatCustom(new Date())
         originalError.apply(console,[timestamp,...args]);
-        const logsend=JSON.stringify({"op":"error","params":[timestamp,...args]})
+        const logsend=JSON.stringify({"op":"error","params":[timestamp,"[Client]",...args]})
         if (connected){
             socket.send(logsend);
         }else{
