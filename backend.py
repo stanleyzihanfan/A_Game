@@ -1,4 +1,4 @@
-import subprocess, time, re, threading, socket, traceback, json
+import subprocess, time, re, threading, socket, traceback, json, msgpack
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sock import Sock
@@ -22,6 +22,11 @@ try:
     #voxels to remove
     remove=[]
 
+    #Binary Packaging functions
+    def encode(data):
+        return msgpack.packb(data,use_bin_type=True)
+    def decode(data):
+        return msgpack.unpackb(data,raw=False)
     #Flask routes
     @app.route("/")
     def index():
@@ -46,7 +51,7 @@ try:
     def server(ws):
         while (True):
             data=ws.receive()
-            data=json.loads(data)
+            data=decode(data)
             if data["op"]=="log":
                 for i in range(len(data["params"])):
                     if (i==0):

@@ -38,11 +38,14 @@ HTML = r"""
 <div id="crosshair"></div>
 <div id="info">Click to capture mouse<br>WASD: move | Space: up | Shift: down | Mouse: look | Scroll:Change Speed</div>
 <div id="debug">Speed: 8</div>
-
+<!--Library imports-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
 <script>
+    //Web Socket initialization
     const socketUrl=location.href.replace(/^http/,"ws")+"server";
     const socket= new WebSocket(socketUrl);
+    socket.binaryType="arraybuffer";
     let connected=false;
     let socketBuffer=[];
     socket.onopen=()=>{
@@ -69,7 +72,7 @@ HTML = r"""
     console.log=function(...args){
         const timestamp = formatCustom(new Date())
         originalLog.apply(console,[timestamp,...args]);
-        const logsend=JSON.stringify({"op":"log","params":[timestamp,"[Client]",...args]})
+        const logsend=msgpack.encode({"op":"log","params":[timestamp,"[Client]",...args]});
         if (connected){
             socket.send(logsend);
         }else{
@@ -80,7 +83,7 @@ HTML = r"""
     console.warn=function(...args){
         const timestamp = formatCustom(new Date())
         originalWarn.apply(console,[timestamp,...args]);
-        const logsend=JSON.stringify({"op":"warn","params":[timestamp,"[Client]",...args]})
+        const logsend=msgpack.encode({"op":"warn","params":[timestamp,"[Client]",...args]});
         if (connected){
             socket.send(logsend);
         }else{
@@ -91,7 +94,7 @@ HTML = r"""
     console.error=function(...args){
         const timestamp = formatCustom(new Date())
         originalError.apply(console,[timestamp,...args]);
-        const logsend=JSON.stringify({"op":"error","params":[timestamp,"[Client]",...args]})
+        const logsend=msgpack.encode({"op":"error","params":[timestamp,"[Client]",...args]});
         if (connected){
             socket.send(logsend);
         }else{
