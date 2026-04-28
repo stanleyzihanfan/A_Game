@@ -36,6 +36,30 @@ try:
     @app.route("/init")
     def state():
         return jsonify({"voxels": VOXELS})
+    #WebSocket Handlers
+    def log(params):
+        for i in range(len(params)):
+            if (i==0):
+                print(params[i],end='')
+            else:
+                print(params[i],end=' ')
+        print()
+    def warn(params):
+        for i in range(len(params)):
+            if (i==0):
+                print("\033[33m"+params[i]+"\033[0m",end='')
+            else:
+                print("\033[33m"+params[i]+"\033[0m",end=' ')
+        print()
+    def error(params):
+        for i in range(len(params)):
+            if (i==0):
+                print("\x1b[38;2;255;0;0m"+params[i]+"\033[0m",end='')
+            else:
+                print("\x1b[38;2;255;0;0m"+params[i]+"\033[0m",end=' ')
+        print()
+    #WebSocket Dispatch Table
+    wsDispatch={"log":log,"warn":warn,"error":error}
     #WebSocket
     wSocket=Sock(app)
     #Send to client
@@ -52,27 +76,9 @@ try:
         while (True):
             data=ws.receive()
             data=decode(data)
-            if data["op"]=="log":
-                for i in range(len(data["params"])):
-                    if (i==0):
-                        print(data["params"][i],end='')
-                    else:
-                        print(data["params"][i],end=' ')
-                print()
-            elif data["op"]=="warn":
-                for i in range(len(data["params"])):
-                    if (i==0):
-                        print("\033[33m"+data["params"][i]+"\033[0m",end='')
-                    else:
-                        print("\033[33m"+data["params"][i]+"\033[0m",end=' ')
-                print()
-            elif data["op"]=="error":
-                for i in range(len(data["params"])):
-                    if (i==0):
-                        print("\033[31m"+data["params"][i]+"\033[0m",end='')
-                    else:
-                        print("\033[31m"+data["params"][i]+"\033[0m",end=' ')
-                print()
+            handler=wsDispatch[data["op"]]
+            if handler:
+                handler(data["params"])
             else:
                 print(data)
 
