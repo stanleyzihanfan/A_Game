@@ -36,6 +36,9 @@ try:
     @app.route("/init")
     def state():
         return jsonify({"voxels": VOXELS})
+    
+    #Socket initialization
+    socketConnected=False
     #WebSocket Handlers
     def log(params):
         for i in range(len(params)):
@@ -58,11 +61,19 @@ try:
             else:
                 print("\x1b[38;2;255;0;0m"+params[i]+"\033[0m",end=' ')
         print()
+    def socketConnection(params):
+        global socketConnected
+        socketConnected=True
+
     #WebSocket Dispatch Table
-    wsDispatch={"log":log,"warn":warn,"error":error}
+    wsDispatch={
+        "log":log,
+        "warn":warn,
+        "error":error,
+        "socketConnected":socketConnection
+    }
     #WebSocket
     wSocket=Sock(app)
-    ws.send
     
     #Receive from client
     @wSocket.route("/server")
@@ -74,7 +85,7 @@ try:
             if handler:
                 handler(data["params"])
             else:
-                print("Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+data["params"]+".")
+                error("Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+data["params"]+".")
 
     #Flask server launch sequence
     port=5000
@@ -112,6 +123,9 @@ try:
         text = line.decode("utf-8", errors="replace").strip()
         if text:
             print(text)
+    #Wait for socket to connect
+    while not socketConnected:
+        time.sleep(0.1)
 #Cleanly catch KeyboardInterupt(user stopping server)
 except KeyboardInterrupt:
     print("Ctrl+C Received,")

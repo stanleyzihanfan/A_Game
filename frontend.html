@@ -48,14 +48,12 @@ HTML = r"""
     const socket= new WebSocket(socketUrl);
     socket.binaryType="arraybuffer";
     let connected=false;
-    let socketBuffer=[];
+    let WSConnectStartTime=performance.now();
     socket.onopen=()=>{
         connected=true;
-        socketBuffer.forEach(element => {
-            socket.send(element);
-        });
     }
-
+    while (!connected){}
+    socket.send(msgpack.encode({"op":"socketConnected","params":[]}));
     /**
      * Generates custom timestamp for logs
      */
@@ -74,34 +72,23 @@ HTML = r"""
         const timestamp = formatCustom(new Date())
         originalLog.apply(console,[timestamp,...args]);
         const logsend=msgpack.encode({"op":"log","params":[timestamp,"[Client]",...args]});
-        if (connected){
-            socket.send(logsend);
-        }else{
-            socketBuffer.push(logsend);
-        }
+        socket.send(logsend);
     }
     const originalWarn=console.warn;
     console.warn=function(...args){
         const timestamp = formatCustom(new Date())
         originalWarn.apply(console,[timestamp,...args]);
         const logsend=msgpack.encode({"op":"warn","params":[timestamp,"[Client]",...args]});
-        if (connected){
-            socket.send(logsend);
-        }else{
-            socketBuffer.push(logsend);
-        }
+        socket.send(logsend);
     }
     const originalError=console.error;
     console.error=function(...args){
         const timestamp = formatCustom(new Date())
         originalError.apply(console,[timestamp,...args]);
         const logsend=msgpack.encode({"op":"error","params":[timestamp,"[Client]",...args]});
-        if (connected){
-            socket.send(logsend);
-        }else{
-            socketBuffer.push(logsend);
-        }
+        socket.send(logsend);
     }
+    console.log("Web Socket initialization took "+(performance.now()-WSConnectStartTime)+" ms");
 </script>
 <!--Three.js Scene & Camera setup-->
 <script>
@@ -234,6 +221,7 @@ HTML = r"""
     //         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
     //     });
 
+    //
     //Add a block
     function block_add(params){
         params.forEach(e => {
@@ -257,9 +245,10 @@ HTML = r"""
         if (handler){
             handler(msg["params"]);
         }else{
-            console.log("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
+            console.warn("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
         }
     }
+    socket.send(msgpack.encode({"op":"Unkown Handler","params":["p1","p2","p3"]}));
 </script>
 </body>
 </html>
