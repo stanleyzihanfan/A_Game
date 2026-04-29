@@ -41,6 +41,7 @@ HTML = r"""
 <!--Library imports-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
+<!--Web Socket Initialization & Log function overrides-->
 <script>
     //Web Socket initialization
     const socketUrl=location.href.replace(/^http/,"ws")+"server";
@@ -54,20 +55,6 @@ HTML = r"""
             socket.send(element);
         });
     }
-    function block_add(params){
-        params.forEach(e => {
-            addVoxel(...e);
-        });
-    }
-    function block_remove(params){
-        params.forEach
-    }
-    //WebSocket Dispatch Table
-    let wsDispatch={
-        "block_add":block_add
-    };
-    //Websocket input handling
-    socket.onmessage=()=>
 
     /**
      * Generates custom timestamp for logs
@@ -115,6 +102,9 @@ HTML = r"""
             socketBuffer.push(logsend);
         }
     }
+</script>
+<!--Three.js Scene & Camera setup-->
+<script>
     console.log("This is a log");
     console.warn("This is a warning");
     console.error("This is an error");
@@ -141,32 +131,10 @@ HTML = r"""
     // -- Grid floor ---------------------------------------------------------------
     scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
 
-    // -- Voxel rendering ----------------------------------------------------------
+    // -- Voxel definition ----------------------------------------------------------
     const voxelGeo = new THREE.BoxGeometry(1, 1, 1);
     const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
     const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
-
-    function addVoxel(x, y, z) {
-        // Solid cube
-        const mesh = new THREE.Mesh(voxelGeo, voxelMat);
-        mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        scene.add(mesh);
-        // Wireframe outline
-        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
-        edges.position.copy(mesh.position);
-        scene.add(edges);
-    }
-
-    // Fetch voxel positions from Flask and build the initial scene
-    fetch("/init")
-        .then(r => r.json())
-        .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
-        .catch(() => {
-            // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
-            [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
-        });
 
     // -- First-person camera controls ---------------------------------------------
     //Configs
@@ -190,6 +158,7 @@ HTML = r"""
         pitch -= e.movementY * SENSITIVITY;
         pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
     });
+
     //Scroll wheel to control speed
     document.addEventListener("wheel", e => {
         Speed-=e.deltaY*SCROLL_DIALATION,0;
@@ -239,6 +208,58 @@ HTML = r"""
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
+</script>
+<!--Function declarations-->
+<script>
+    //Add a voxel to scene
+    function addVoxel(x, y, z) {
+        // Solid cube
+        const mesh = new THREE.Mesh(voxelGeo, voxelMat);
+        mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        // Wireframe outline
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
+        edges.position.copy(mesh.position);
+        scene.add(edges);
+    }
+
+    // // Fetch voxel positions from Flask and build the initial scene
+    // fetch("/init")
+    //     .then(r => r.json())
+    //     .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
+    //     .catch(() => {
+    //         // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
+    //         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
+    //     });
+
+    //Add a block
+    function block_add(params){
+        params.forEach(e => {
+            addVoxel(...e);
+        });
+    }
+    //Remove a block
+    function block_remove(params){
+        params.forEach(e => {
+
+        })
+    }
+    //WebSocket Dispatch Table
+    let wsDispatch={
+        "block_add":block_add
+    };
+    //Websocket input handling
+    socket.onmessage=(e)=>{
+        const msg=msgpack.decode(new Uint8Array(e.data));
+        const handler=wsDispatch[msg["op"]];
+        if (handler){
+            handler(msg["params"]);
+        }else{
+            console.log("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
+        }
+    }
 </script>
 </body>
 </html>

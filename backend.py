@@ -62,13 +62,7 @@ try:
     wsDispatch={"log":log,"warn":warn,"error":error}
     #WebSocket
     wSocket=Sock(app)
-    #Send to client
-    @wSocket.route("/client")
-    def client():
-        if add:
-            return jsonify({"op":"ADD_VOXELS","voxels":add})
-        if remove:
-            return jsonify({"op":"REMOVE_VOXELS","voxels":add})
+    ws.send
     
     #Receive from client
     @wSocket.route("/server")
@@ -76,11 +70,11 @@ try:
         while (True):
             data=ws.receive()
             data=decode(data)
-            handler=wsDispatch[data["op"]]
+            handler=wsDispatch.get(data["op"])
             if handler:
                 handler(data["params"])
             else:
-                print(data)
+                print("Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+data["params"]+".")
 
     #Flask server launch sequence
     port=5000
