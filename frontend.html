@@ -56,12 +56,15 @@ HTML = r"""
     }
     function block_add(params){
         params.forEach(e => {
-            
+            addVoxel(...e);
         });
+    }
+    function block_remove(params){
+        params.forEach
     }
     //WebSocket Dispatch Table
     let wsDispatch={
-        "block_add":
+        "block_add":block_add
     };
     //Websocket input handling
     socket.onmessage=()=>
