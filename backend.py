@@ -85,7 +85,7 @@ try:
             if handler:
                 handler(data["params"])
             else:
-                error("Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+data["params"]+".")
+                print("\x1b[38;2;255;0;0m"+"Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+str(data["params"])+"."+"\033[0m")
 
     #Flask server launch sequence
     port=5000

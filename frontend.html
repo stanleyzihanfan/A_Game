@@ -50,9 +50,6 @@ HTML = r"""
 </script>
 <!--Three.js Scene & Camera setup-->
 <script>
-    console.log("This is a log");
-    console.warn("This is a warning");
-    console.error("This is an error");
     // -- Scene setup --------------------------------------------------------------
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb); // sky blue
@@ -159,7 +156,6 @@ HTML = r"""
     let WSConnectStartTime=performance.now();
     socket.onopen=()=>{
         socket.send(msgpack.encode({"op":"socketConnected","params":[]}));
-        console.log("Web Socket connection took "+(performance.now()-WSConnectStartTime)+" ms");
         /**
          * Generates custom timestamp for logs
          */
@@ -194,6 +190,10 @@ HTML = r"""
             const logsend=msgpack.encode({"op":"error","params":[timestamp,"[Client]",...args]});
             socket.send(logsend);
         }
+        console.log("Web Socket connection took "+(performance.now()-WSConnectStartTime)+" ms");
+        console.log("This is a log");
+        console.warn("This is a warning");
+        console.error("This is an error");
         //Add a voxel to scene
         function addVoxel(x, y, z) {
             // Solid cube
