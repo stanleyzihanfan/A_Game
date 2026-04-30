@@ -41,54 +41,12 @@ HTML = r"""
 <!--Library imports-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
-<!--Web Socket Initialization & Log function overrides-->
+<!--Web Socket Initialization-->
 <script>
     //Web Socket initialization
     const socketUrl=location.href.replace(/^http/,"ws")+"server";
     const socket= new WebSocket(socketUrl);
     socket.binaryType="arraybuffer";
-    let connected=false;
-    let WSConnectStartTime=performance.now();
-    socket.onopen=()=>{
-        connected=true;
-    }
-    while (!connected){}
-    socket.send(msgpack.encode({"op":"socketConnected","params":[]}));
-    /**
-     * Generates custom timestamp for logs
-     */
-    function formatCustom(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}]`;
-    }
-    //Override console functions
-    const originalLog=console.log;
-    console.log=function(...args){
-        const timestamp = formatCustom(new Date())
-        originalLog.apply(console,[timestamp,...args]);
-        const logsend=msgpack.encode({"op":"log","params":[timestamp,"[Client]",...args]});
-        socket.send(logsend);
-    }
-    const originalWarn=console.warn;
-    console.warn=function(...args){
-        const timestamp = formatCustom(new Date())
-        originalWarn.apply(console,[timestamp,...args]);
-        const logsend=msgpack.encode({"op":"warn","params":[timestamp,"[Client]",...args]});
-        socket.send(logsend);
-    }
-    const originalError=console.error;
-    console.error=function(...args){
-        const timestamp = formatCustom(new Date())
-        originalError.apply(console,[timestamp,...args]);
-        const logsend=msgpack.encode({"op":"error","params":[timestamp,"[Client]",...args]});
-        socket.send(logsend);
-    }
-    console.log("Web Socket initialization took "+(performance.now()-WSConnectStartTime)+" ms");
 </script>
 <!--Three.js Scene & Camera setup-->
 <script>
@@ -196,59 +154,98 @@ HTML = r"""
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 </script>
-<!--Function declarations-->
+<!--Web Socket Function declarations-->
 <script>
-    //Add a voxel to scene
-    function addVoxel(x, y, z) {
-        // Solid cube
-        const mesh = new THREE.Mesh(voxelGeo, voxelMat);
-        mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        scene.add(mesh);
-        // Wireframe outline
-        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
-        edges.position.copy(mesh.position);
-        scene.add(edges);
-    }
-
-    // // Fetch voxel positions from Flask and build the initial scene
-    // fetch("/init")
-    //     .then(r => r.json())
-    //     .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
-    //     .catch(() => {
-    //         // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
-    //         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
-    //     });
-
-    //
-    //Add a block
-    function block_add(params){
-        params.forEach(e => {
-            addVoxel(...e);
-        });
-    }
-    //Remove a block
-    function block_remove(params){
-        params.forEach(e => {
-
-        })
-    }
-    //WebSocket Dispatch Table
-    let wsDispatch={
-        "block_add":block_add
-    };
-    //Websocket input handling
-    socket.onmessage=(e)=>{
-        const msg=msgpack.decode(new Uint8Array(e.data));
-        const handler=wsDispatch[msg["op"]];
-        if (handler){
-            handler(msg["params"]);
-        }else{
-            console.warn("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
+    let WSConnectStartTime=performance.now();
+    socket.onopen=()=>{
+        socket.send(msgpack.encode({"op":"socketConnected","params":[]}));
+        console.log("Web Socket connection took "+(performance.now()-WSConnectStartTime)+" ms");
+        /**
+         * Generates custom timestamp for logs
+         */
+        function formatCustom(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}]`;
         }
+        //Override console functions
+        const originalLog=console.log;
+        console.log=function(...args){
+            const timestamp = formatCustom(new Date())
+            originalLog.apply(console,[timestamp,...args]);
+            const logsend=msgpack.encode({"op":"log","params":[timestamp,"[Client]",...args]});
+            socket.send(logsend);
+        }
+        const originalWarn=console.warn;
+        console.warn=function(...args){
+            const timestamp = formatCustom(new Date())
+            originalWarn.apply(console,[timestamp,...args]);
+            const logsend=msgpack.encode({"op":"warn","params":[timestamp,"[Client]",...args]});
+            socket.send(logsend);
+        }
+        const originalError=console.error;
+        console.error=function(...args){
+            const timestamp = formatCustom(new Date())
+            originalError.apply(console,[timestamp,...args]);
+            const logsend=msgpack.encode({"op":"error","params":[timestamp,"[Client]",...args]});
+            socket.send(logsend);
+        }
+        //Add a voxel to scene
+        function addVoxel(x, y, z) {
+            // Solid cube
+            const mesh = new THREE.Mesh(voxelGeo, voxelMat);
+            mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            // Wireframe outline
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
+            edges.position.copy(mesh.position);
+            scene.add(edges);
+        }
+
+        // // Fetch voxel positions from Flask and build the initial scene
+        // fetch("/init")
+        //     .then(r => r.json())
+        //     .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
+        //     .catch(() => {
+        //         // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
+        //         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
+        //     });
+
+        //
+        //Add a block
+        function block_add(params){
+            params.forEach(e => {
+                addVoxel(...e);
+            });
+        }
+        //Remove a block
+        function block_remove(params){
+            params.forEach(e => {
+
+            })
+        }
+        //WebSocket Dispatch Table
+        let wsDispatch={
+            "block_add":block_add
+        };
+        //Websocket input handling
+        socket.onmessage=(e)=>{
+            const msg=msgpack.decode(new Uint8Array(e.data));
+            const handler=wsDispatch[msg["op"]];
+            if (handler){
+                handler(msg["params"]);
+            }else{
+                console.warn("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
+            }
+        }
+        socket.send(msgpack.encode({"op":"Unkown Handler","params":["p1","p2","p3"]}));
     }
-    socket.send(msgpack.encode({"op":"Unkown Handler","params":["p1","p2","p3"]}));
 </script>
 </body>
 </html>
