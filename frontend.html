@@ -203,8 +203,8 @@ HTML = r"""
         //         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
         //     });
 
-        //
-        let meshReference={};
+        //Storage of meshes&wireframes in scenes
+        let meshReference=new Map();
         //Add a block
         function block_add(params){
             params.forEach(e => {
@@ -217,13 +217,12 @@ HTML = r"""
                 mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
-                mesh.name=`${x},${y},${z}mesh`;
                 scene.add(mesh);
                 // Wireframe outline
                 const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
                 edges.position.copy(mesh.position);
-                edges.name=`${x},${y},${z}edge`;
                 scene.add(edges);
+                meshReference.set(`${x},${y},${z}`,[mesh,edges]);
             });
         }
         //Remove a block
@@ -232,7 +231,8 @@ HTML = r"""
                 const x=e[0];
                 const y=e[1];
                 const z=e[2];
-                scene.getObjectByName(`${x},${y},${z}mesh`)
+                const toDelete=meshReference.get(`${x},${y},${z}`);
+                
             })
         }
         //WebSocket Dispatch Table
