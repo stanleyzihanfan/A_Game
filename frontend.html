@@ -155,7 +155,6 @@ HTML = r"""
 <script>
     let WSConnectStartTime=performance.now();
     socket.onopen=()=>{
-        socket.send(msgpack.encode({"op":"socketConnected","params":[]}));
         /**
          * Generates custom timestamp for logs
          */
@@ -194,19 +193,6 @@ HTML = r"""
         console.log("This is a log");
         console.warn("This is a warning");
         console.error("This is an error");
-        //Add a voxel to scene
-        function addVoxel(x, y, z) {
-            // Solid cube
-            const mesh = new THREE.Mesh(voxelGeo, voxelMat);
-            mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            scene.add(mesh);
-            // Wireframe outline
-            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
-            edges.position.copy(mesh.position);
-            scene.add(edges);
-        }
 
         // // Fetch voxel positions from Flask and build the initial scene
         // fetch("/init")
@@ -218,16 +204,35 @@ HTML = r"""
         //     });
 
         //
+        let meshReference={};
         //Add a block
         function block_add(params){
             params.forEach(e => {
-                addVoxel(...e);
+                //Add voxel to scene
+                const x=e[0];
+                const y=e[1];
+                const z=e[2];
+                // Solid cube
+                const mesh = new THREE.Mesh(voxelGeo.clone(), voxelMat.clone());
+                mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.name=`${x},${y},${z}mesh`;
+                scene.add(mesh);
+                // Wireframe outline
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
+                edges.position.copy(mesh.position);
+                edges.name=`${x},${y},${z}edge`;
+                scene.add(edges);
             });
         }
         //Remove a block
         function block_remove(params){
             params.forEach(e => {
-
+                const x=e[0];
+                const y=e[1];
+                const z=e[2];
+                scene.getObjectByName(`${x},${y},${z}mesh`)
             })
         }
         //WebSocket Dispatch Table

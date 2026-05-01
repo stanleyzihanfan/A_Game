@@ -12,11 +12,12 @@ try:
 
     # Placeholder voxel world — a few cubes at fixed positions
     # Each entry is [x, y, z] in world space, 1 unit per voxel
-    VOXELS = [
+    voxelAdd = [
         [0, 0, 0], [1, 0, 0], [2, 0, 0],   # a row along X
         [1, 1, 0], [1, 2, 0],               # a column up
         [0, 0, 1], [2, 0, 2],               # scattered
     ]
+    voxelRemove=[]
     #voxels to add
     add=[]
     #voxels to remove
@@ -61,16 +62,14 @@ try:
             else:
                 print("\x1b[38;2;255;0;0m"+params[i]+"\033[0m",end=' ')
         print()
-    def socketConnection(params):
-        global socketConnected
-        socketConnected=True
+    def syncModifications(params):
+        return {"op":"add"}
 
     #WebSocket Dispatch Table
     wsDispatch={
         "log":log,
         "warn":warn,
         "error":error,
-        "socketConnected":socketConnection
     }
     #WebSocket
     wSocket=Sock(app)
@@ -83,7 +82,9 @@ try:
             data=decode(data)
             handler=wsDispatch.get(data["op"])
             if handler:
-                handler(data["params"])
+                returnValue=handler(data["params"])
+                if returnValue:
+                    ws.send(encode(returnValue))
             else:
                 print("\x1b[38;2;255;0;0m"+"Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+str(data["params"])+"."+"\033[0m")
 
@@ -123,9 +124,6 @@ try:
         text = line.decode("utf-8", errors="replace").strip()
         if text:
             print(text)
-    #Wait for socket to connect
-    while not socketConnected:
-        time.sleep(0.1)
 #Cleanly catch KeyboardInterupt(user stopping server)
 except KeyboardInterrupt:
     print("Ctrl+C Received,")
