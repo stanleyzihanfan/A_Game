@@ -161,13 +161,18 @@ HTML = r"""
                 const toDelete=meshReference.get(`${x},${y},${z}`);
                 const mesh=toDelete[0];
                 scene.remove(mesh);
-                mesh.material.dispose();
                 mesh.geometry.dispose();
+                mesh.material.dispose();
+                const edge=toDelete[1];
+                scene.remove(edge);
+                edge.geometry.dispose();
+                edge.material.dispose();
             })
         }
         //WebSocket Dispatch Table
         let wsDispatch={
-            "block_add":block_add
+            "block_add":block_add,
+            "block_remove":block_remove
         };
         //Websocket input handling
         socket.onmessage=(e)=>{
