@@ -63,13 +63,14 @@ try:
                 print("\x1b[38;2;255;0;0m"+params[i]+"\033[0m",end=' ')
         print()
     def syncModifications(params):
-        return {"op":"add"}
+        return [{"op":"block_add","params":[voxelAdd]},{"op":"block_remove","params":[voxelRemove]}]
 
     #WebSocket Dispatch Table
     wsDispatch={
         "log":log,
         "warn":warn,
         "error":error,
+        "syncBlocks":syncModifications
     }
     #WebSocket
     wSocket=Sock(app)
@@ -84,7 +85,8 @@ try:
             if handler:
                 returnValue=handler(data["params"])
                 if returnValue:
-                    ws.send(encode(returnValue))
+                    for i in returnValue:
+                        ws.send(encode(i))
             else:
                 print("\x1b[38;2;255;0;0m"+"Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+str(data["params"])+"."+"\033[0m")
 

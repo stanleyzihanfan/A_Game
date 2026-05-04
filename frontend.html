@@ -184,7 +184,7 @@ HTML = r"""
                 console.warn("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
             }
         }
-        socket.send(msgpack.encode({"op":"Unkown Handler","params":["p1","p2","p3"]}));
+        socket.send(msgpack.encode({"op":"syncBlocks","params":[]}));
     }
 </script>
 <!--Player control & Render Loop-->
