@@ -36,7 +36,7 @@ try:
 
     @app.route("/init")
     def state():
-        return jsonify({"voxels": VOXELS})
+        return jsonify({"voxels": []})
     
     #Socket initialization
     socketConnected=False

@@ -134,7 +134,8 @@ HTML = r"""
         let meshReference=new Map();
         //Add a block
         function block_add(params){
-            params.forEach(e => {
+            params[0].forEach(e => {
+                console.log(e);
                 //Add voxel to scene
                 const x=e[0];
                 const y=e[1];
