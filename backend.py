@@ -22,6 +22,8 @@ try:
     add=[]
     #voxels to remove
     remove=[]
+    #Client ID counter
+    clientID=0
 
     #Binary Packaging functions
     def encode(data):
@@ -36,7 +38,10 @@ try:
 
     @app.route("/init")
     def state():
-        return jsonify({"voxels": []})
+        global clientID
+        msg=jsonify(clientID)
+        clientID+=1
+        return msg
     
     #Socket initialization
     socketConnected=False

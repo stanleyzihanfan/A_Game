@@ -82,6 +82,10 @@ HTML = r"""
 <script>
     let WSConnectStartTime=performance.now();
     socket.onopen=()=>{
+        // Fetch Cliend ID from frontend
+        fetch("/init")
+            .then(r => r.json())
+            .then(data => { const clientID=data});
         /**
          * Generates custom timestamp for logs
          */
@@ -99,37 +103,30 @@ HTML = r"""
         console.log=function(...args){
             const timestamp = formatCustom(new Date())
             originalLog.apply(console,[timestamp,...args]);
-            const logsend=msgpack.encode({"op":"log","params":[timestamp,"[Client]",...args]});
+            const logsend=msgpack.encode({"op":"log","params":[timestamp,`[Client#${clientID}]`,...args]});
             socket.send(logsend);
         }
         const originalWarn=console.warn;
         console.warn=function(...args){
             const timestamp = formatCustom(new Date())
             originalWarn.apply(console,[timestamp,...args]);
-            const logsend=msgpack.encode({"op":"warn","params":[timestamp,"[Client]",...args]});
+            const logsend=msgpack.encode({"op":"warn","params":[timestamp,`[Client#${clientID}]`,...args]});
             socket.send(logsend);
         }
         const originalError=console.error;
         console.error=function(...args){
             const timestamp = formatCustom(new Date())
             originalError.apply(console,[timestamp,...args]);
-            const logsend=msgpack.encode({"op":"error","params":[timestamp,"[Client]",...args]});
+            const logsend=msgpack.encode({"op":"error","params":[timestamp,`[Client#${clientID}]`,...args]});
             socket.send(logsend);
         }
-        console.log("Web Socket connection took "+(performance.now()-WSConnectStartTime)+" ms");
+
+        console.log("Client "+clientID+" connected.")
+        console.log("Client connection took "+(performance.now()-WSConnectStartTime)+" ms");
+        
         console.log("This is a log");
         console.warn("This is a warning");
         console.error("This is an error");
-
-        // // Fetch voxel positions from Flask and build the initial scene
-        // fetch("/init")
-        //     .then(r => r.json())
-        //     .then(data => { data.voxels.forEach(([x,y,z]) => addVoxel(x, y, z)); })
-        //     .catch(() => {
-        //         // Fallback: render some cubes if fetch fails (e.g. CORS issues during dev)
-        //         [[0,0,0]].forEach(([x,y,z]) => addVoxel(x,y,z));
-        //     });
-
         //Storage of meshes&wireframes in scenes
         let meshReference=new Map();
         //Add a block
