@@ -199,7 +199,7 @@ HTML = r"""
                 const y=e[1];
                 const z=e[2];
                 const toDelete=meshReference.get(`${x},${y},${z}`);
-                if (toDelete!=None){
+                if (toDelete!==undefined){
                     const mesh=toDelete[0];
                     scene.remove(mesh);
                     mesh.geometry.dispose();
