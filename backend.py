@@ -36,12 +36,12 @@ try:
         from flask import Response
         return Response(HTML, mimetype="text/html")
 
-    @app.route("/init")
-    def state():
-        global clientID
-        msg=jsonify(clientID)
-        clientID+=1
-        return msg
+    # @app.route("/init")
+    # def state():
+    #     global clientID
+    #     msg=jsonify(clientID)
+    #     clientID+=1
+    #     return msg
     
     #Socket initialization
     socketConnected=False
@@ -67,6 +67,11 @@ try:
             else:
                 print("\x1b[38;2;255;0;0m"+params[i]+"\033[0m",end=' ')
         print()
+    def assignClientID(params):
+        global clientID
+        msg=clientID
+        clientID+=1
+        return [{"op":"assignClientID","params":[msg]}]
     def syncModifications(params):
         return [{"op":"block_add","params":[voxelAdd]},{"op":"block_remove","params":[voxelRemove]}]
 
@@ -83,6 +88,10 @@ try:
     #Receive from client
     @wSocket.route("/server")
     def server(ws):
+        global clientID
+        myID=clientID
+        clientID+=1
+        ws.send(encode({"op":"init","params":myID}))
         while (True):
             data=ws.receive()
             data=decode(data)

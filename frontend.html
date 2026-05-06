@@ -32,34 +32,58 @@ HTML = r"""
             font: 14px monospace;
             text-shadow: 1px 1px 2px black;
         }
+        #errorlog{
+            position:fixed;bottom:10px;
+            left:10px;color:#ff4444;
+            font:12px monospace;
+            text-shadow:1px 1px 2px black;
+            max-width:80vw;max-height:40vh;
+            overflow-y:auto;
+            white-space:pre-wrap;
+        }
     </style>
 </head>
 <body>
 <div id="crosshair"></div>
 <div id="info">Click to capture mouse<br>WASD: move | Space: up | Shift: down | Mouse: look | Scroll:Change Speed</div>
 <div id="debug">Speed: 8</div>
+<div id="errorlog"></div>
 <!--Library imports-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
-<!--Web Socket Initialization-->
+<!--Error debug script-->
 <script>
-    //Web Socket initialization
+    window.onerror = function(msg, src, line, col, err) {
+        const div = document.getElementById("errorlog");
+        if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
+        return false;
+    };
+    window.onunhandledrejection = function(e) {
+        const div = document.getElementById("errorlog");
+        if (div) div.innerText += `UNHANDLED PROMISE: ${e.reason}\n`;
+    };
+</script>
+<!--Global Vars-->
+<script>
+    //Web Socket variables
     const socketUrl=location.href.replace(/^http/,"ws")+"server";
     const socket= new WebSocket(socketUrl);
     socket.binaryType="arraybuffer";
-</script>
-<!--Three.js Scene setup-->
-<script>
-    // -- Scene setup --------------------------------------------------------------
+    //WebSocket Dispatch Table
+    const wsDispatch={
+        "block_add":block_add,
+        "block_remove":block_remove
+    };
+    //Client ID
+    const clientID=-1;
+    // -- THREE.js Scene setup --------------------------------------------------------------
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // sky blue
+    scene.background = new THREE.Color(0x87ceeb);
     //scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
-
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
-
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
     camera.position.set(5, 4, 10); // start position
 
@@ -78,14 +102,33 @@ HTML = r"""
     const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
     const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
 </script>
+<!--Web Socket initializations-->
+<script>
+    let WSConnectStartTime=-1;
+    socket.onopen = () => {
+        WSConnectStartTime=performance.now();
+    }
+    socket.onmessage = () => {
+        const msg=msgpack.decode(new Uint8Array(e.data));
+        if (msg["op"]==="init"){
+            //Initialize cliendID
+            clientID=msg["params"][0];
+            initClient();
+            return;
+        }else{
+            socket.send(msgpack.encode({"op":"error","params":["Attempted to communicated with non-initialized client!","\n","Operation:",msg["op"],"\n","Params:",msg["params"]]}));
+        }
+    }
+
+</script>
 <!--Web Socket Function declarations-->
 <script>
-    let WSConnectStartTime=performance.now();
-    socket.onopen=()=>{
-        // Fetch Cliend ID from frontend
-        fetch("/init")
-            .then(r => r.json())
-            .then(data => { const clientID=data});
+    function initClient(){
+        //Helper function
+        function addWebSocketHandler(name,func){
+            wsDispatch[name]=func;
+        }
+
         /**
          * Generates custom timestamp for logs
          */
@@ -101,28 +144,29 @@ HTML = r"""
         //Override console functions
         const originalLog=console.log;
         console.log=function(...args){
-            const timestamp = formatCustom(new Date())
+            const timestamp = formatCustom(new Date());
             originalLog.apply(console,[timestamp,...args]);
             const logsend=msgpack.encode({"op":"log","params":[timestamp,`[Client#${clientID}]`,...args]});
             socket.send(logsend);
         }
         const originalWarn=console.warn;
         console.warn=function(...args){
-            const timestamp = formatCustom(new Date())
+            const timestamp = formatCustom(new Date());
             originalWarn.apply(console,[timestamp,...args]);
             const logsend=msgpack.encode({"op":"warn","params":[timestamp,`[Client#${clientID}]`,...args]});
             socket.send(logsend);
         }
         const originalError=console.error;
         console.error=function(...args){
-            const timestamp = formatCustom(new Date())
+            const timestamp = formatCustom(new Date());
             originalError.apply(console,[timestamp,...args]);
             const logsend=msgpack.encode({"op":"error","params":[timestamp,`[Client#${clientID}]`,...args]});
             socket.send(logsend);
         }
 
-        console.log("Client "+clientID+" connected.")
-        console.log("Client connection took "+(performance.now()-WSConnectStartTime)+" ms");
+        //console.log("Client "+clientID+" connected.")
+        const clientConnectiontime=performance.now()-WSConnectStartTime;
+        //console.log("Client connection took "+(performance.now()-WSConnectStartTime)+" ms");
         
         console.log("This is a log");
         console.warn("This is a warning");
@@ -167,11 +211,6 @@ HTML = r"""
                 edge.material.dispose();
             })
         }
-        //WebSocket Dispatch Table
-        let wsDispatch={
-            "block_add":block_add,
-            "block_remove":block_remove
-        };
         //Websocket input handling
         socket.onmessage=(e)=>{
             const msg=msgpack.decode(new Uint8Array(e.data));
