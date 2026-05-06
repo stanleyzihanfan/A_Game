@@ -70,12 +70,9 @@ HTML = r"""
     const socket= new WebSocket(socketUrl);
     socket.binaryType="arraybuffer";
     //WebSocket Dispatch Table
-    const wsDispatch={
-        "block_add":block_add,
-        "block_remove":block_remove
-    };
+    const wsDispatch={};
     //Client ID
-    const clientID=-1;
+    let clientID=-1;
     // -- THREE.js Scene setup --------------------------------------------------------------
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
@@ -108,7 +105,7 @@ HTML = r"""
     socket.onopen = () => {
         WSConnectStartTime=performance.now();
     }
-    socket.onmessage = () => {
+    socket.onmessage = (e) => {
         const msg=msgpack.decode(new Uint8Array(e.data));
         if (msg["op"]==="init"){
             //Initialize cliendID
@@ -125,7 +122,7 @@ HTML = r"""
 <script>
     function initClient(){
         //Helper function
-        function addWebSocketHandler(name,func){
+        function registerSocketHandler(name,func){
             wsDispatch[name]=func;
         }
 
@@ -194,6 +191,7 @@ HTML = r"""
                 meshReference.set(`${x},${y},${z}`,[mesh,edges]);
             });
         }
+        registerSocketHandler("block_add",block_add);
         //Remove a block
         function block_remove(params){
             params.forEach(e => {
@@ -201,16 +199,19 @@ HTML = r"""
                 const y=e[1];
                 const z=e[2];
                 const toDelete=meshReference.get(`${x},${y},${z}`);
-                const mesh=toDelete[0];
-                scene.remove(mesh);
-                mesh.geometry.dispose();
-                mesh.material.dispose();
-                const edge=toDelete[1];
-                scene.remove(edge);
-                edge.geometry.dispose();
-                edge.material.dispose();
+                if (toDelete!=None){
+                    const mesh=toDelete[0];
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                    const edge=toDelete[1];
+                    scene.remove(edge);
+                    edge.geometry.dispose();
+                    edge.material.dispose();
+                }
             })
         }
+        registerSocketHandler("block_remove",block_remove);
         //Websocket input handling
         socket.onmessage=(e)=>{
             const msg=msgpack.decode(new Uint8Array(e.data));
