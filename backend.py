@@ -6,6 +6,9 @@ from werkzeug.serving import make_server
 
 tunnelProc=None
 flaskProc=None
+# Track active websocket connections
+active_connections = set()
+active_connections_lock = threading.Lock()
 try:
     app = Flask(__name__)
     CORS(app)
@@ -24,9 +27,6 @@ try:
     remove=[]
     #Client ID counter
     clientID=0
-    # Track active websocket connections
-    active_connections = set()
-    active_connections_lock = threading.Lock()
 
     #Binary Packaging functions
     def encode(data):
