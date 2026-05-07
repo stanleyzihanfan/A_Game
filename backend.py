@@ -1,8 +1,19 @@
-import subprocess, time, re, threading, socket, traceback, json, msgpack
+import subprocess, time, re, threading, socket, traceback, json, msgpack, argparse, os
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sock import Sock
 from werkzeug.serving import make_server
+
+# -- Argument parsing ----------------------------------------------------------
+# --tunnel flag exposes the server publicly via cloudflared (e.g. for multiplayer)
+# Without it the server runs on localhost only (e.g. for local singleplayer)
+parser = argparse.ArgumentParser()
+parser.add_argument("--tunnel", action="store_true", help="Expose via cloudflared tunnel")
+args = parser.parse_args()
+
+# Resolve the directory this file lives in so file paths work regardless of
+# where the script is launched from (Colab, PC, etc.)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 tunnelProc=None
 flaskProc=None
@@ -37,7 +48,9 @@ try:
     @app.route("/")
     def index():
         from flask import Response
-        return Response(HTML, mimetype="text/html")
+        # Read frontend.html from disk, relative to this file's location
+        with open(os.path.join(BASE_DIR, "frontend.html"), "r") as f:
+            return Response(f.read(), mimetype="text/html")
 
     # @app.route("/init")
     # def state():
@@ -140,20 +153,29 @@ try:
     t.start()
     print(f"Flask running on port {port}")
 
-    CLOUDFLARED = "/tools/node/lib/node_modules/cloudflared/bin/cloudflared"
+    # -- Tunnel (optional) --------------------------------------------------------
+    # Only started when --tunnel flag is passed (e.g. for public multiplayer)
+    # For local singleplayer, the server is accessed directly at localhost:{port}
+    if args.tunnel:
+        CLOUDFLARED = "/tools/node/lib/node_modules/cloudflared/bin/cloudflared"
 
-    tunnelProc = subprocess.Popen(
-        [CLOUDFLARED, "tunnel", "--url", f"http://localhost:{port}"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT  # merge stderr into stdout so one loop sees everything
-    )
+        tunnelProc = subprocess.Popen(
+            [CLOUDFLARED, "tunnel", "--url", f"http://localhost:{port}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT  # merge stderr into stdout so one loop sees everything
+        )
 
-    print("Starting tunnel, waiting for URL...")
-    #Capture & print full output
-    for line in tunnelProc.stdout: #type:ignore
-        text = line.decode("utf-8", errors="replace").strip()
-        if text:
-            print(text)
+        print("Starting tunnel, waiting for URL...")
+        #Capture & print full output
+        for line in tunnelProc.stdout: #type:ignore
+            text = line.decode("utf-8", errors="replace").strip()
+            if text:
+                print(text)
+    else:
+        print(f"Server running locally at http://localhost:{port}")
+        # Block forever so the server stays alive (tunnel loop did this implicitly before)
+        threading.Event().wait()
+
 #Cleanly catch KeyboardInterupt(user stopping server)
 except KeyboardInterrupt:
     print("Ctrl+C Received,")
