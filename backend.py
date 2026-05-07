@@ -135,7 +135,7 @@ try:
                     continue
     find_port()
     print(f"Port {port} open, launching server")
-    flaskProc=make_server("0.0.0.0",port,app)
+    flaskProc=make_server("0.0.0.0",port,app,threaded=True)
     t = threading.Thread(target=flaskProc.serve_forever, daemon=True)
     t.start()
     print(f"Flask running on port {port}")
