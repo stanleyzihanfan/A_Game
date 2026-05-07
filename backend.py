@@ -24,6 +24,9 @@ try:
     remove=[]
     #Client ID counter
     clientID=0
+    # Track active websocket connections
+    active_connections = set()
+    active_connections_lock = threading.Lock()
 
     #Binary Packaging functions
     def encode(data):
@@ -89,20 +92,31 @@ try:
     @wSocket.route("/server")
     def server(ws):
         global clientID
-        myID=clientID
-        clientID+=1
-        ws.send(encode({"op":"init","params":myID}))
-        while (True):
-            data=ws.receive()
-            data=decode(data)
-            handler=wsDispatch.get(data["op"])
-            if handler:
-                returnValue=handler(data["params"])
-                if returnValue:
-                    for i in returnValue:
-                        ws.send(encode(i))
-            else:
-                print("\x1b[38;2;255;0;0m"+"Frontend attempted to access unknown backend handler: "+data["op"]+" with params "+str(data["params"])+"."+"\033[0m")
+        #Store & increment clientID
+        myID = clientID
+        clientID += 1
+        
+        with active_connections_lock:
+            active_connections.add(ws)
+        
+        try:
+            ws.send(encode({"op": "init", "params": [myID]}))
+            while True:
+                data = ws.receive()
+                if data is None:
+                    break
+                data = decode(data)
+                handler = wsDispatch.get(data["op"])
+                if handler:
+                    returnValue = handler(data["params"])
+                    if returnValue:
+                        for i in returnValue:
+                            ws.send(encode(i))
+                else:
+                    print(f"\x1b[31mFrontend attempted unknown handler: {data['op']}\033[0m")
+        finally:
+            with active_connections_lock:
+                active_connections.discard(ws)
 
     #Flask server launch sequence
     port=5000
@@ -148,6 +162,12 @@ except BaseException as e:
     traceback.print_exc()
 finally:
     print("Gracefully shutting down server...")
+    with active_connections_lock:
+        for ws in active_connections:
+            try:
+                ws.close()
+            except Exception:
+                pass
     if flaskProc is not None:
         flaskProc.shutdown()
     if tunnelProc is not None:
