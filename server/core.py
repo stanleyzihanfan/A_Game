@@ -5,6 +5,7 @@ from flask_sock import Sock
 from werkzeug.serving import make_server
 
 from server.ws_registry import Registry
+from server.mod_loader import load_mods
 
 # Resolve project root (one level up from server/)
 # so file paths work regardless of where the script is launched from (Colab, PC, etc.)
@@ -18,6 +19,9 @@ wSocket = Sock(app)
 # -- Central mod registry ------------------------------------------------------
 # Mods register their WebSocket op handlers here
 registry = Registry()
+
+#Mod manifests, used for sending JS frontend mod handler registration to frontend
+loaded_mods=[]
 
 # Track active websocket connections
 active_connections = set()
@@ -83,7 +87,10 @@ def find_port(start=5000):
 
 # -- Server startup ------------------------------------------------------------
 def start():
-    global flask_server
+    global flask_server, loaded_mods
+    #load mods
+    loaded_mods=load_mods(registry)
+    #Launch flask server
     port = find_port()
     print(f"Port {port} open, launching server")
     flask_server = make_server("0.0.0.0", port, app, threaded=True)
