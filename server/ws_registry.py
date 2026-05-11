@@ -8,6 +8,7 @@ class Registry:
 
     def register_handler(self, op: str, func):
         self._handlers[op] = func
+        print("Handler "+op+" registered.")
 
     def get_handler(self, op:str):
         return self._handlers.get(op)
