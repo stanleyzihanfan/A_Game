@@ -50,4 +50,4 @@ def register(registry):
     registry.register_handler("warn", warn)
     registry.register_handler("error", error)
     registry.register_handler("syncBlocks", syncBlocks)
-    print("  Handlers registered: log, warn, error, syncBlocks")
+    #print("  Handlers registered: log, warn, error, syncBlocks")
