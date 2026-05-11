@@ -46,6 +46,10 @@ def load_mods(registry):
         manifest = manifests[modID]
         mod_path = manifest["_mod_path"]
         backend_py = manifest.get("backend_py")
+        with open(manifest_path, "r") as f:
+            manifest = json.load(f)
+        print(f"  DEBUG manifest keys: {list(manifest.keys())}")
+        print(f"  DEBUG backend_py value: {repr(manifest.get('backend_py'))}")
 
         print(f"Loading mod: {manifest['name']} v{manifest['version']} ({modID})")
 
