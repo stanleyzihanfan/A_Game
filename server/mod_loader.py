@@ -2,7 +2,7 @@ import os, json, importlib.util
 
 # -- Mod Loader ----------------------------------------------------------------
 # Scans the /mods directory, reads each manifest.json, and loads each mod's
-# main_py in order, calling register(registry) on each one.
+# backend_py in order, calling register(registry) on each one.
 
 # Absolute path to /mods folder at project root
 MODS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mods")
@@ -45,15 +45,15 @@ def load_mods(registry):
     for modID in _load_order(manifests):
         manifest = manifests[modID]
         mod_path = manifest["_mod_path"]
-        main_py = manifest.get("main_py")
+        backend_py = manifest.get("backend_py")
 
         print(f"Loading mod: {manifest['name']} v{manifest['version']} ({modID})")
 
-        # main_py is nullable — frontend-only mods skip this
-        if main_py:
-            py_path = os.path.join(mod_path, main_py)
+        # backend_py is nullable — frontend-only mods skip this
+        if backend_py:
+            py_path = os.path.join(mod_path, backend_py)
             if not os.path.isfile(py_path):
-                print(f"\x1b[33m  main_py '{main_py}' not found for mod '{modID}', skipping\033[0m")
+                print(f"\x1b[33m  main.py '{backend_py}' not found for mod '{modID}', skipping\033[0m")
                 continue
             # Dynamically import the mod's main.py without polluting sys.modules
             # with a generic name — use modID as the module name
@@ -66,7 +66,9 @@ def load_mods(registry):
                 print(f"\x1b[33m  Mod '{modID}' has no register() function, skipping\033[0m")
                 continue
             module.register(registry)
-            print(f"  Backend registered: {main_py}")
+            print(f"  Backend registered: {backend_py}")
+        else:
+            print(f"\x1b[33m  main.py '{backend_py}' not registered in registry for mod '{modID}', skipping\033[0m")
 
         loaded.append(manifest)
         print(f"  Loaded OK")
