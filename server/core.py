@@ -46,6 +46,22 @@ def index():
         return Response(f.read(), mimetype="text/html")
 
 # -- WebSocket -----------------------------------------------------------------
+# Patch client mod js scripts
+def _send_mod_scripts(ws):
+    """Send each loaded mod's client.js source over the websocket, then signal ready."""
+    for manifest in loaded_mods:
+        client_js = manifest.get("client_js")
+        if not client_js:
+            continue
+        js_path = os.path.join(manifest["_mod_path"], client_js)
+        if not os.path.isfile(js_path):
+            continue
+        with open(js_path, "r") as f:
+            src = f.read()
+        ws.send(encode({"op": "load_mod_js", "params": [manifest["modID"], src]}))
+    # Signal that all mod scripts have been sent
+    ws.send(encode({"op": "mods_ready", "params": []}))
+
 @wSocket.route("/server")
 def server(ws):
     global clientID
@@ -59,6 +75,8 @@ def server(ws):
     try:
         # Send client its assigned ID so it can initialize
         ws.send(encode({"op": "init", "params": [myID]}))
+        #Stream client all mod JS files
+        _send_mod_scripts(ws)
         while True:
             data = ws.receive()
             if data is None:

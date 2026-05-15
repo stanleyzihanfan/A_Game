@@ -100,34 +100,48 @@
 </script>
 <!--Web Socket initializations-->
 <script>
-    let WSConnectStartTime=-1;
+    // -- WebSocket bootstrap -------------------------------------------------------
+    // Phase 1: raw message handler before client is initialized
+    // Routes init, load_mod_js, and mods_ready — then hands off to mod dispatch
+    let WSConnectStartTime = -1;
+
     socket.onopen = () => {
-        WSConnectStartTime=performance.now();
-    }
-    socket.onmessage = (e) => {
-        const msg=msgpack.decode(new Uint8Array(e.data));
-        if (msg["op"]==="init"){
-            //Initialize cliendID
-            clientID=msg["params"][0];
-            initClient();
-            return;
-        }else{
-            socket.send(msgpack.encode({"op":"error","params":["Attempted to communicated with non-initialized client!","\n","Operation:",msg["op"],"\n","Params:",msg["params"]]}));
-        }
+        WSConnectStartTime = performance.now();
     }
 
+    // Pre-init handler — only runs until mods_ready is received
+    socket.onmessage = (e) => {
+        const msg = msgpack.decode(new Uint8Array(e.data));
+
+        if (msg["op"] === "init") {
+            clientID = msg["params"][0];
+            initClient();
+            return;
+        }
+        if (msg["op"] === "load_mod_js") {
+            const [modID, src] = msg["params"];
+            try {
+                eval(src);
+                console.log(`Mod script loaded: ${modID}`);  // uses original console, mods not ready yet
+            } catch(err) {
+                const div = document.getElementById("errorlog");
+                if (div) div.innerText += `MOD LOAD ERROR (${modID}): ${err}\n`;
+            }
+            return;
+        }
+        if (msg["op"] === "mods_ready") {
+            onModsReady();
+            return;
+        }
+        // Any message arriving before mods_ready is unexpected
+        const div = document.getElementById("errorlog");
+        if (div) div.innerText += `Unexpected pre-init message: ${msg["op"]}\n`;
+    }
 </script>
 <!--Web Socket Function declarations-->
 <script>
-    function initClient(){
-        //Helper function
-        function registerSocketHandler(name,func){
-            wsDispatch[name]=func;
-        }
-
-        /**
-         * Generates custom timestamp for logs
-         */
+    function initClient() {
+        // -- Console overrides (timestamp + forward to server) --------------------
         function formatCustom(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -137,91 +151,41 @@
             const seconds = String(date.getSeconds()).padStart(2, '0');
             return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}]`;
         }
-        //Override console functions
-        const originalLog=console.log;
-        console.log=function(...args){
+        const originalLog = console.log;
+        console.log = function(...args) {
             const timestamp = formatCustom(new Date());
-            originalLog.apply(console,[timestamp,...args]);
-            const logsend=msgpack.encode({"op":"log","params":[timestamp,`[Client#${clientID}]`,...args]});
-            socket.send(logsend);
+            originalLog.apply(console, [timestamp, ...args]);
+            socket.send(msgpack.encode({"op": "log", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
         }
-        const originalWarn=console.warn;
-        console.warn=function(...args){
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
             const timestamp = formatCustom(new Date());
-            originalWarn.apply(console,[timestamp,...args]);
-            const logsend=msgpack.encode({"op":"warn","params":[timestamp,`[Client#${clientID}]`,...args]});
-            socket.send(logsend);
+            originalWarn.apply(console, [timestamp, ...args]);
+            socket.send(msgpack.encode({"op": "warn", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
         }
-        const originalError=console.error;
-        console.error=function(...args){
+        const originalError = console.error;
+        console.error = function(...args) {
             const timestamp = formatCustom(new Date());
-            originalError.apply(console,[timestamp,...args]);
-            const logsend=msgpack.encode({"op":"error","params":[timestamp,`[Client#${clientID}]`,...args]});
-            socket.send(logsend);
+            originalError.apply(console, [timestamp, ...args]);
+            socket.send(msgpack.encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
         }
+    }
 
-        //console.log("Client "+clientID+" connected.")
-        const clientConnectiontime=performance.now()-WSConnectStartTime;
-        //console.log("Client connection took "+(performance.now()-WSConnectStartTime)+" ms");
-        
-        console.log("This is a log");
-        console.warn("This is a warning");
-        console.error("This is an error");
-        //Storage of meshes&wireframes in scenes
-        let meshReference=new Map();
-        //Add a block
-        function block_add(params){
-            params[0].forEach(e => {
-                console.log(e);
-                //Add voxel to scene
-                const x=e[0];
-                const y=e[1];
-                const z=e[2];
-                // Solid cube
-                const mesh = new THREE.Mesh(voxelGeo.clone(), voxelMat.clone());
-                mesh.position.set(x + 0.5, y + 0.5, z + 0.5); // +0.5 so voxel sits on grid
-                mesh.castShadow = true;
-                mesh.receiveShadow = true;
-                scene.add(mesh);
-                // Wireframe outline
-                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(voxelGeo), edgeMat);
-                edges.position.copy(mesh.position);
-                scene.add(edges);
-                meshReference.set(`${x},${y},${z}`,[mesh,edges]);
-            });
-        }
-        registerSocketHandler("block_add",block_add);
-        //Remove a block
-        function block_remove(params){
-            params.forEach(e => {
-                const x=e[0];
-                const y=e[1];
-                const z=e[2];
-                const toDelete=meshReference.get(`${x},${y},${z}`);
-                if (toDelete!==undefined){
-                    const mesh=toDelete[0];
-                    scene.remove(mesh);
-                    mesh.geometry.dispose();
-                    mesh.material.dispose();
-                    const edge=toDelete[1];
-                    scene.remove(edge);
-                    edge.geometry.dispose();
-                    edge.material.dispose();
-                }
-            })
-        }
-        registerSocketHandler("block_remove",block_remove);
-        //Websocket input handling
-        socket.onmessage=(e)=>{
-            const msg=msgpack.decode(new Uint8Array(e.data));
-            const handler=wsDispatch[msg["op"]];
-            if (handler){
+    function onModsReady() {
+        // -- Hand off WebSocket to mod dispatch table ------------------------------
+        // From this point all messages are routed through wsDispatch
+        // which mod client.js files have populated during load_mod_js
+        socket.onmessage = (e) => {
+            const msg = msgpack.decode(new Uint8Array(e.data));
+            const handler = wsDispatch[msg["op"]];
+            if (handler) {
                 handler(msg["params"]);
-            }else{
-                console.warn("Backend attempted to access unknown frontend handler: "+msg["op"]+" with params "+msg["params"]+".");
+            } else {
+                console.warn("Backend attempted to access unknown frontend handler: " + msg["op"]);
             }
         }
-        socket.send(msgpack.encode({"op":"syncBlocks","params":[]}));
+        // -- Trigger first mod op -------------------------------------------------
+        socket.send(msgpack.encode({"op": "syncBlocks", "params": []}));
     }
 </script>
 <!--Player control & Render Loop-->
