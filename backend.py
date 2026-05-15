@@ -51,13 +51,6 @@ try:
         # Read frontend.html from disk, relative to this file's location
         with open(os.path.join(BASE_DIR, "frontend.html"), "r") as f:
             return Response(f.read(), mimetype="text/html")
-
-    # @app.route("/init")
-    # def state():
-    #     global clientID
-    #     msg=jsonify(clientID)
-    #     clientID+=1
-    #     return msg
     
     #Socket initialization
     socketConnected=False

@@ -1,0 +1,10 @@
+{
+    "modID": "base_game",
+    "name": "Base Game",
+    "version": "0.1.0",
+    "description": "Core voxel world functionality",
+    "author": "Stanley",
+    "backend_py": "main.py",
+    "client_js": "client.js",
+    "dependencies": []
+}
