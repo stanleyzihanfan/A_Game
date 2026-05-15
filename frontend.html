@@ -127,7 +127,7 @@
             try {
                 console.log(`Loading frontend mod script: ${modID}`);
                 eval(src);
-                console.log(`  ${modID} loaded OK`);
+                console.log(`${modID} loaded OK`);
             } catch(err) {
                 const div = document.getElementById("errorlog");
                 if (div) div.innerText += `MOD LOAD ERROR (${modID}): ${err}\n`;
