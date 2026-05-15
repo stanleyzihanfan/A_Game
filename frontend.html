@@ -109,33 +109,37 @@
         WSConnectStartTime = performance.now();
     }
 
+    //Handler registration helper
+    function registerHandler(name,func){
+        wsDispatch[name]=func;
+        console.log("  Frontend Handler "+name+" registered.");
+    }
     // Pre-init handler — only runs until mods_ready is received
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
-
         if (msg["op"] === "init") {
             clientID = msg["params"][0];
             initClient();
             return;
         }
-        if (msg["op"] === "load_mod_js") {
+        else if (msg["op"] === "load_mod_js") {
             const [modID, src] = msg["params"];
             try {
+                console.log(`Loading frontend mod script: ${modID}`);
                 eval(src);
-                console.log(`Mod script loaded: ${modID}`);  // uses original console, mods not ready yet
+                console.log(`  ${modID} loaded OK`);
             } catch(err) {
                 const div = document.getElementById("errorlog");
                 if (div) div.innerText += `MOD LOAD ERROR (${modID}): ${err}\n`;
             }
             return;
         }
-        if (msg["op"] === "mods_ready") {
+        else if (msg["op"] === "mods_ready") {
             onModsReady();
             return;
+        }else{
+            console.warn("Backend attempted to access frontend handler " + msg["op"]+" before mod initialization finished with params "+msg["params"]+".");
         }
-        // Any message arriving before mods_ready is unexpected
-        const div = document.getElementById("errorlog");
-        if (div) div.innerText += `Unexpected pre-init message: ${msg["op"]}\n`;
     }
 </script>
 <!--Web Socket Function declarations-->
@@ -169,6 +173,21 @@
             originalError.apply(console, [timestamp, ...args]);
             socket.send(msgpack.encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
         }
+        //Error handling
+        window.onerror = function(msg, src, line, col, err) {
+            const div = document.getElementById("errorlog");
+            if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
+            const timestamp = formatCustom(new Date());
+            //originalError.apply(console, [timestamp, ...args]);
+            socket.send(msgpack.encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`]}));
+            return false;
+        };
+        window.onunhandledrejection = function(e) {
+            const div = document.getElementById("errorlog");
+            if (div) div.innerText += `UNHANDLED PROMISE: ${e.reason}\n`;
+            //originalError.apply(console, [timestamp, ...args]);
+            socket.send(msgpack.encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, `UNHANDLED PROMISE: ${e.reason}\n`]}));
+        };
     }
 
     function onModsReady() {
@@ -181,7 +200,7 @@
             if (handler) {
                 handler(msg["params"]);
             } else {
-                console.warn("Backend attempted to access unknown frontend handler: " + msg["op"]);
+                console.warn("Backend attempted to access unknown frontend handler " + msg["op"]+" with params "+msg["params"]+".");
             }
         }
         // -- Trigger first mod op -------------------------------------------------
