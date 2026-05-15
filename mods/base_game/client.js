@@ -47,5 +47,7 @@ function block_remove(params) {
 }
 
 // Register handlers with frontend dispatch table
-wsDispatch["block_add"] = block_add;
-wsDispatch["block_remove"] = block_remove;
+// wsDispatch["block_add"] = block_add;
+// wsDispatch["block_remove"] = block_remove;
+registerHandler("block_add",block_add);
+registerHandler("block_remove",block_remove);
