@@ -62,41 +62,45 @@
         if (div) div.innerText += `UNHANDLED PROMISE: ${e.reason}\n`;
     };
 </script>
-<!--Global Vars-->
+<!--Game State-->
 <script>
-    //Web Socket variables
-    const socketUrl=location.href.replace(/^http/,"ws")+"server";
-    const socket= new WebSocket(socketUrl);
-    socket.binaryType="arraybuffer";
-    //WebSocket Dispatch Table
-    const wsDispatch={};
-    //Client ID
-    let clientID=-1;
-    // -- THREE.js Scene setup --------------------------------------------------------------
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
-    //scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    document.body.appendChild(renderer.domElement);
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(5, 4, 10); // start position
+    class gameState{
+        constructor (){
+            //Web Socket variables
+            this.socketUrl=location.href.replace(/^http/,"ws")+"server";
+            this.socket= new WebSocket(this.socketUrl);
+            this.socket.binaryType="arraybuffer";
+            //WebSocket Dispatch Table
+            this.wsDispatch={};
+            //Client ID
+            this.clientID=-1;
+            // -- THREE.js Scene setup --------------------------------------------------------------
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x87ceeb);
+            //scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
+            this.renderer = new THREE.WebGLRenderer({ antialias: true });
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.renderer.shadowMap.enabled = true;
+            document.body.appendChild(this.renderer.domElement);
+            this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+            this.camera.position.set(5, 4, 10); // start position
 
-    // -- Lighting -----------------------------------------------------------------
-    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-    sun.position.set(10, 20, 10);
-    sun.castShadow = true;
-    scene.add(sun);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            // -- Lighting -----------------------------------------------------------------
+            this.sun = new THREE.DirectionalLight(0xffffff, 1.0);
+            this.sun.position.set(10, 20, 10);
+            this.sun.castShadow = true;
+            this.scene.add(this.sun);
+            this.scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-    // -- Grid floor ---------------------------------------------------------------
-    scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
+            // -- Grid floor ---------------------------------------------------------------
+            this.scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
 
-    // -- Voxel definition ----------------------------------------------------------
-    const voxelGeo = new THREE.BoxGeometry(1, 1, 1);
-    const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
-    const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
+            // -- Voxel definition ----------------------------------------------------------
+            this.voxelGeo = new THREE.BoxGeometry(1, 1, 1);
+            this.voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
+            this.edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
+        }
+    }
 </script>
 <!--Web Socket initializations-->
 <script>
@@ -208,84 +212,87 @@
                 console.warn("Backend attempted to access unknown frontend handler " + msg["op"]+" with params "+msg["params"]+".");
             }
         }
-        // -- Trigger first mod op -------------------------------------------------
+        // -- Start main game loop -------------------------------------------------
         socket.send(msgpack.encode({"op": "syncBlocks", "params": []}));
+        main();
     }
 </script>
 <!--Player control & Render Loop-->
 <script>
-    // -- First-person camera controls ---------------------------------------------
-    //Configs
-    const keys = {};
-    let yaw = 0, pitch = 0;
-    let Speed = 8; // units per second
-    const SCROLL_DIALATION=0.005;
-    const SENSITIVITY = 0.002; // radians per pixel
+    function main(){
+        // -- First-person camera controls ---------------------------------------------
+        //Configs
+        const keys = {};
+        let yaw = 0, pitch = 0;
+        let Speed = 8; // units per second
+        const SCROLL_DIALATION=0.005;
+        const SENSITIVITY = 0.002; // radians per pixel
 
-    document.addEventListener("keydown", e => { keys[e.code] = true;    e.preventDefault(); });
-    document.addEventListener("keyup",     e => { keys[e.code] = false; });
+        document.addEventListener("keydown", e => { keys[e.code] = true;    e.preventDefault(); });
+        document.addEventListener("keyup",     e => { keys[e.code] = false; });
 
-    // Pointer lock
-    renderer.domElement.addEventListener("click", () => {
-        renderer.domElement.requestPointerLock();
-    });
-    //Set camera look direction
-    document.addEventListener("mousemove", e => {
-        if (document.pointerLockElement !== renderer.domElement) return;
-        yaw     -= e.movementX * SENSITIVITY;
-        pitch -= e.movementY * SENSITIVITY;
-        pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
-    });
+        // Pointer lock
+        renderer.domElement.addEventListener("click", () => {
+            renderer.domElement.requestPointerLock();
+        });
+        //Set camera look direction
+        document.addEventListener("mousemove", e => {
+            if (document.pointerLockElement !== renderer.domElement) return;
+            yaw     -= e.movementX * SENSITIVITY;
+            pitch -= e.movementY * SENSITIVITY;
+            pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+        });
 
-    //Scroll wheel to control speed
-    document.addEventListener("wheel", e => {
-        Speed-=e.deltaY*SCROLL_DIALATION,0;
-        Speed=Math.max(Speed,0);
-        document.getElementById("debug").textContent="Speed: "+Speed
-    })
+        //Scroll wheel to control speed
+        document.addEventListener("wheel", e => {
+            Speed-=e.deltaY*SCROLL_DIALATION,0;
+            Speed=Math.max(Speed,0);
+            document.getElementById("debug").textContent="Speed: "+Speed
+        })
 
-    // Build a direction vector from yaw/pitch (Minecraft spectator style)
-    const forward = new THREE.Vector3();
-    const right = new THREE.Vector3();
-    const up = new THREE.Vector3(0, 1, 0);
+        // Build a direction vector from yaw/pitch (Minecraft spectator style)
+        const forward = new THREE.Vector3();
+        const right = new THREE.Vector3();
+        const up = new THREE.Vector3(0, 1, 0);
 
-    function updateCamera(dt) {
-        // Rotation: yaw around world Y, pitch around local X
-        camera.rotation.order = "YXZ";
-        camera.rotation.y = yaw;
-        camera.rotation.x = pitch;
+        function updateCamera(dt) {
+            // Rotation: yaw around world Y, pitch around local X
+            camera.rotation.order = "YXZ";
+            camera.rotation.y = yaw;
+            camera.rotation.x = pitch;
 
-        // Movement directions derived from yaw only (no tilt on strafe/forward)
-        forward.set(Math.sin(yaw), 0, Math.cos(yaw)).negate();
-        right.crossVectors(forward, up).normalize();
+            // Movement directions derived from yaw only (no tilt on strafe/forward)
+            forward.set(Math.sin(yaw), 0, Math.cos(yaw)).negate();
+            right.crossVectors(forward, up).normalize();
 
-        const dist = Speed * dt;
-        if (keys["KeyW"]) camera.position.addScaledVector(forward, dist);
-        if (keys["KeyS"]) camera.position.addScaledVector(forward, -dist);
-        if (keys["KeyA"]) camera.position.addScaledVector(right, -dist);
-        if (keys["KeyD"]) camera.position.addScaledVector(right, dist);
-        if (keys["Space"]) camera.position.y += dist;
-        if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
+            const dist = Speed * dt;
+            if (keys["KeyW"]) camera.position.addScaledVector(forward, dist);
+            if (keys["KeyS"]) camera.position.addScaledVector(forward, -dist);
+            if (keys["KeyA"]) camera.position.addScaledVector(right, -dist);
+            if (keys["KeyD"]) camera.position.addScaledVector(right, dist);
+            if (keys["Space"]) camera.position.y += dist;
+            if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
+        }
+
+        // -- Render+game loop ---------------------------------------------------------------
+        function loop() {
+            requestAnimationFrame(loop);
+            const dt = 0.05; // cap at 50ms to avoid spiral
+            updateCamera(dt);
+            renderer.render(scene, camera);
+            wsDispatch["onTick"].forEach(e => {
+                e()
+            });
+        }
+        loop();
+
+        // -- Resize handler ------------------------------------------------------------
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     }
-
-    // -- Render loop ---------------------------------------------------------------
-    let last = performance.now();
-    function loop() {
-        requestAnimationFrame(loop);
-        const now = performance.now();
-        const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
-        last = now;
-        updateCamera(dt);
-        renderer.render(scene, camera);
-    }
-    loop();
-
-    // -- Resize handler ------------------------------------------------------------
-    window.addEventListener("resize", () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
 </script>
 </body>
 </html>

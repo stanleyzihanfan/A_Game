@@ -46,6 +46,11 @@ function block_remove(params) {
     });
 }
 
+//Trigger on player move
+function notifyOnPlayerMove(params) {
+    
+}
+
 // Register handlers with frontend dispatch table
 // wsDispatch["block_add"] = block_add;
 // wsDispatch["block_remove"] = block_remove;
