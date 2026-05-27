@@ -111,9 +111,12 @@
 
     //Handler registration helper
     function registerHandler(name,func){
-        wsDispatch[name]=func;
+        if (!Object.hasOwn(wsDispatch,name)) wsDispatch[name]=[];
+        else console.log(`  Frontend Handler ${name} sharing name with other functions!`);
+        wsDispatch[name].push(func);
         console.log("  Frontend Handler "+name+" registered.");
     }
+
     // Pre-init handler — only runs until mods_ready is received
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
@@ -196,9 +199,11 @@
         // which mod client.js files have populated during load_mod_js
         socket.onmessage = (e) => {
             const msg = msgpack.decode(new Uint8Array(e.data));
-            const handler = wsDispatch[msg["op"]];
-            if (handler) {
-                handler(msg["params"]);
+            const handlers = wsDispatch[msg["op"]];
+            if (handlers) {
+                handlers.forEach(e => {
+                    e(msg["params"]);
+                });
             } else {
                 console.warn("Backend attempted to access unknown frontend handler " + msg["op"]+" with params "+msg["params"]+".");
             }
