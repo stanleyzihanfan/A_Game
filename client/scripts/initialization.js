@@ -12,7 +12,7 @@ function registerHandler(name,func){
     wsDispatch[name]=func;
     console.log("  Frontend Handler "+name+" registered.");
 }
-// Pre-init handler — only runs until mods_ready is received
+// Init handler — only runs until mods_ready is received
 socket.onmessage = (e) => {
     const msg = msgpack.decode(new Uint8Array(e.data));
     if (msg["op"] === "init") {
