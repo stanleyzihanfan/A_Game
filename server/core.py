@@ -39,11 +39,21 @@ def decode(data):
     return msgpack.unpackb(data, raw=False)
 
 # -- Flask routes --------------------------------------------------------------
+#Serve html frontend page
 @app.route("/")
 def index():
     # Read frontend.html from disk, relative to project root
-    with open(os.path.join(BASE_DIR, "frontend.html"), "r") as f:
+    with open(os.path.join(BASE_DIR, "client/frontend.html"), "r") as f:
         return Response(f.read(), mimetype="text/html")
+#Serve JS files(for frontend src requests)
+@app.route("/<path:filename>")
+def static_file(filename):
+    # Serve static files from project root
+    filepath = os.path.join(BASE_DIR, filename)
+    if not os.path.isfile(filepath):
+        return "Not found", 404
+    with open(filepath, "r") as f:
+        return Response(f.read(), mimetype="application/javascript")
 
 # -- WebSocket -----------------------------------------------------------------
 # Patch client mod js scripts
