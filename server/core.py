@@ -1,4 +1,4 @@
-import socket, threading, msgpack, traceback, os
+import socket, threading, msgpack, traceback, os, mimetypes
 from flask import Flask, Response
 from flask_cors import CORS
 from flask_sock import Sock
@@ -50,10 +50,14 @@ def index():
 def static_file(filename):
     # Serve static files from project root
     filepath = os.path.join(BASE_DIR, filename)
+    # Auto-detect mimetype from file extension
+    mimetype, _ = mimetypes.guess_type(filepath)
+    if not mimetype:
+        mimetype = "text/plain"
     if not os.path.isfile(filepath):
         return "Not found", 404
     with open(filepath, "r") as f:
-        return Response(f.read(), mimetype="application/javascript")
+        return Response(f.read(), mimetype=mimetype)
 
 # -- WebSocket -----------------------------------------------------------------
 # Patch client mod js scripts
