@@ -52,7 +52,7 @@ function onModsReady() {
         const msg = msgpack.decode(new Uint8Array(e.data));
         const handler = wsDispatch[msg["op"]];
         if (handler) {
-            handler(msg["params"]);
+            for (let i=0;i<handler.length;i++) handler[i](msg["params"]);
         } else {
             console.warn("Backend attempted to access unknown frontend handler " + msg["op"]+" with params "+msg["params"]+".");
         }

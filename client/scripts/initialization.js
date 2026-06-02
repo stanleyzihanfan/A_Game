@@ -9,8 +9,12 @@ socket.onopen = () => {
 
 //Handler registration helper
 function registerHandler(name,func){
-    wsDispatch[name]=func;
-    console.log("  Frontend Handler "+name+" registered.");
+    if (!Object.hasOwn(wsDispatch,name)) {
+        wsDispatch[name]=[];
+        console.log(`  Frontend Event Hook ${name} registered.`);
+    }
+    wsDispatch[name].push(func);
+    console.log(`  Frontend Handler registered under ${name}`);
 }
 // Init handler — only runs until mods_ready is received
 socket.onmessage = (e) => {

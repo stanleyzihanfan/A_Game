@@ -7,8 +7,11 @@ class Registry:
         self._handlers = {}
 
     def register_handler(self, op: str, func):
-        self._handlers[op] = func
-        print("  Handler "+op+" registered.")
+        if not op in self._handlers:
+            self._handlers[op]=[]
+            print(f"  Event Handler {op} created.")
+        self._handlers[op].append(func)
+        print(f"  New handler registered under {op}.")
 
     def get_handler(self, op:str):
         return self._handlers.get(op)
@@ -16,10 +19,11 @@ class Registry:
     def dispatch(self, op: str, params, ws, encode):
         handler = self._handlers.get(op)
         if handler:
-            result = handler(params)
-            # Handlers optionally return a list of messages to send back
-            if result:
-                for msg in result:
-                    ws.send(encode(msg))
+            for i in handler:
+                result = i(params)
+                # Handlers optionally return a list of messages to send back
+                if result:
+                    for msg in result:
+                        ws.send(encode(msg))
             return True
         return False
