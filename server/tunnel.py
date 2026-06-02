@@ -1,4 +1,4 @@
-import argparse, subprocess, threading, traceback
+import argparse, subprocess, threading, traceback, shutil, os
 from server import core
 
 # -- Argument parsing ----------------------------------------------------------
@@ -8,6 +8,26 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--tunnel", action="store_true", help="Expose via cloudflared tunnel")
 args = parser.parse_args()
 
+#Helper function to locate cloudflared installation
+def find_cloudflared():
+    """
+    Search for cloudflared in common locations.
+    Returns the path to the cloudflared binary, or None if not found.
+    """
+    # Common locations on different systems
+    candidates = [
+        "/usr/local/bin/cloudflared",           # Local Linux install
+        "/usr/bin/cloudflared",                 # System-wide Linux install
+        "/tools/node/lib/node_modules/cloudflared/bin/cloudflared",  # Colab
+        shutil.which("cloudflared"),            # In PATH
+    ]
+    
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    
+    return None
+
 tunnelProc = None
 try:
     port = core.start()
@@ -16,7 +36,9 @@ try:
     # Only started when --tunnel flag is passed (e.g. for public multiplayer)
     # For local singleplayer, the server is accessed directly at localhost:{port}
     if args.tunnel:
-        CLOUDFLARED = "/tools/node/lib/node_modules/cloudflared/bin/cloudflared"
+        CLOUDFLARED = find_cloudflared()
+        if CLOUDFLARED==None:
+            raise FileNotFoundError("Cloudflared Installation not found on machine.\nDid you forget to install cloudflared?")
         tunnelProc = subprocess.Popen(
             [CLOUDFLARED, "tunnel", "--url", f"http://localhost:{port}"],
             stdout=subprocess.PIPE,
