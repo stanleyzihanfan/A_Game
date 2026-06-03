@@ -9,7 +9,7 @@ class Registry:
     def register_handler(self, op: str, func):
         if not op in self._handlers:
             self._handlers[op]=[]
-            print(f"  Event Handler {op} created.")
+            print(f"  Event Hook {op} created.")
         self._handlers[op].append(func)
         print(f"  New handler registered under {op}.")
 
