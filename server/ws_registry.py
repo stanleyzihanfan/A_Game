@@ -6,11 +6,16 @@ class Registry:
         # op_name -> handler function
         self._handlers = {}
 
-    def register_handler(self, op: str, func):
+    def register_handler(self, op: str, func, name:str = None):
+        handlerName=name or func.__name__
         if not op in self._handlers:
-            self._handlers[op]=[]
+            self._handlers[op]={}
             print(f"  Event Hook {op} created.")
-        self._handlers[op].append(func)
+        if handlerName=='<lambda>':
+            handlerName=f"_lambda_{id(func)}"
+        if handlerName in self._handlers:
+            print(f"\033[33m  [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
+        self._handlers[op][handlerName]=func
         print(f"  New handler registered under {op}.")
 
     def get_handler(self, op:str):
