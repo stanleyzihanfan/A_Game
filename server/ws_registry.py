@@ -13,7 +13,7 @@ class Registry:
             print(f"  Event Hook {op} created.")
         if handlerName=='<lambda>':
             handlerName=f"_lambda_{id(func)}"
-        if handlerName in self._handlers:
+        if handlerName in self._handlers[op]:
             print(f"\033[33m  [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
         self._handlers[op][handlerName]=func
         print(f"  New handler registered under {op}.")
