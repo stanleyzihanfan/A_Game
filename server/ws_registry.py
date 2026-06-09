@@ -6,7 +6,7 @@ class Registry:
         # op_name -> handler function
         self._handlers = {}
 
-    def register_handler(self, op: str, func:function, name:str = None):
+    def register_handler(self, op: str, func, name:str = None):
         """
         Register a handler
 
@@ -23,7 +23,7 @@ class Registry:
         #If name is not provided, replace with _lambda+unique function ID to prevent collision
         if handlerName=='<lambda>':
             handlerName=f"_lambda_{id(func)}"
-        #Warn if another handler with same name already exists & override
+        #Warn if another handler with same name already exists
         if handlerName in self._handlers[op]:
             print(f"\033[33m  [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
         #Register function in _handlers

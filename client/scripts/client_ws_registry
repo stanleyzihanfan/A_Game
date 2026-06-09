@@ -1,0 +1,27 @@
+class Registry{
+    constructor(){
+        this._handlers={};
+        this.UFID=0;
+    }
+
+    register_handler(op,func,name=undefined){
+        let handlerName=name;
+        //Create new event hook if not created
+        if (!Object.hasOwn(this._handlers,op)){
+            this._handlers[op]={};
+            console.log(`  Frontend Event Hook ${op} created.`);
+        }
+        //If name is not provided, replace with _lambda+unique function ID to prevent collision
+        if (handlerName===undefined){
+            handlerName=`_lambda_${this.UFID}`;
+            this.UFID++;
+        }
+        //Warn if another handler with the same name already exists
+        if (Object.hasOwn(this._handlers[op],handlerName)){
+            console.warn(`  Handler ${handlerName} already registered under ${op}, overriding!`);
+        }
+        //Register function in _handlers
+        self._handlers[op][handlerName]=func;
+        console.log(`  New handler registered under ${op}.`);
+    }
+}
