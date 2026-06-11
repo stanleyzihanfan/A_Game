@@ -1,11 +1,13 @@
 // -- WebSocket bootstrap -------------------------------------------------------
-// Phase 1: raw message handler before client is initialized
+// Raw message handler before client is initialized
 // Routes init, load_mod_js, and mods_ready — then hands off to mod dispatch
 let WSConnectStartTime = -1;
 
 socket.onopen = () => {
     WSConnectStartTime = performance.now();
 }
+
+//Global 
 
 //Handler registration helper
 function registerHandler(name,func){

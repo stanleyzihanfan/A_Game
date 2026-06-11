@@ -21,7 +21,36 @@ class Registry{
             console.warn(`  Handler ${handlerName} already registered under ${op}, overriding!`);
         }
         //Register function in _handlers
-        self._handlers[op][handlerName]=func;
+        this._handlers[op][handlerName]=func;
         console.log(`  New handler registered under ${op}.`);
+    }
+
+    get_handler(op,name=undefined){
+        //Return handler if name is provided
+        if (name && Object.hasOwn(this._handlers,op)){
+            return this._handlers[op][name];
+        }
+        //Return full dict under event hook(name not provided)
+        return this._handlers[op];
+    }
+
+    dispatch(op,params,ws,encode){
+        handlers=this.get_handler(op);
+        if (handlers){
+            for (const key in handlers){
+                try{
+                    let result=handlers[key](params);
+                    //Handlers optionally return a list of messages to send back
+                    if (result){
+                        for (const msg of result){
+                            ws.send(encode(msg));
+                        }
+                    }
+                } catch(e){
+                    console.error(`Handler '${handlerName}' under '${op}' failed:`);
+                    console.error(e.message);
+                }
+            }
+        }
     }
 }
