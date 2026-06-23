@@ -47,10 +47,12 @@ class Registry{
                         }
                     }
                 } catch(e){
-                    console.error(`Handler '${handlerName}' under '${op}' failed:`);
+                    console.error(`Handler ${handlerName} under ${op} failed:`);
                     console.error(e.message);
                 }
             }
+        }else{
+            console.warn(`Backend attempted to access unknown frontend handler ${op}.`);
         }
     }
 }

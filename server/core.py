@@ -96,9 +96,8 @@ def server(ws):
             if data is None:
                 break
             data = decode(data)
-            # Route message to registered handler; warn if op is unknown
-            if not registry.dispatch(data["op"], data["params"], ws, encode):
-                print(f"\x1b[31mFrontend attempted unknown handler: {data['op']}\033[0m")
+            # Route message to handler
+            registry.dispatch(data["op"], data["params"], ws, encode)
     finally:
         #Remove from connected clients on client disconnect
         with active_connections_lock:

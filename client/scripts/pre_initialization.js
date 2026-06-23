@@ -13,7 +13,7 @@ window.onunhandledrejection = function(e) {
 const socketUrl=location.href.replace(/^http/,"ws")+"server";
 const socket= new WebSocket(socketUrl);
 socket.binaryType="arraybuffer";
-//WebSocket Dispatch Table
+//WebSocket Dispatch
 const wsDispatch={};
 //Client ID
 let clientID=-1;

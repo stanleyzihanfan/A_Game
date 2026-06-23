@@ -68,3 +68,5 @@ class Registry:
                 except Exception as e:
                     print(f"\x1b[31mHandler '{handlerName}' under '{op}' failed:\033[0m")
                     print(f"  {type(e).__name__}: {e}")
+        else:
+            print(f"\x1b[31mFrontend attempted to access unknown handler {op}\033[0m")
