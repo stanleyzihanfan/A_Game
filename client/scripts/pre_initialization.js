@@ -8,13 +8,21 @@ window.onunhandledrejection = function(e) {
     const div = document.getElementById("errorlog");
     if (div) div.innerText += `UNHANDLED PROMISE: ${e.reason}\n`;
 };
-//Global Vars
+//Globals
+/**
+ * Helper function to encode messages using msgpack
+ * @param {*} msg Message to encode
+ * @returns Msgpack encoded message
+ */
+function encode(msg){
+    return msgpack.encode(msg);
+}
 //Web Socket variables
 const socketUrl=location.href.replace(/^http/,"ws")+"server";
 const socket= new WebSocket(socketUrl);
 socket.binaryType="arraybuffer";
-//WebSocket Dispatch
-const wsDispatch={};
+//WebSocket Registry
+const wsRegistry=new Registry();
 //Client ID
 let clientID=-1;
 // -- THREE.js Scene setup --------------------------------------------------------------

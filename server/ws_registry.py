@@ -14,14 +14,13 @@ class Registry:
         :param funct: Function object of handler
         :param name: Name of handler function
         """
-        #If name is not provided, func.__name__ is always "<lambda>"
-        handlerName=name or func.__name__
+        handlerName=name
         #Create new event hook if not created
         if not op in self._handlers:
             self._handlers[op]={}
             print(f"  Event Hook {op} created.")
         #If name is not provided, replace with _lambda+unique function ID to prevent collision
-        if handlerName=='<lambda>':
+        if handlerName==None:
             handlerName=f"_lambda_{id(func)}"
         #Warn if another handler with same name already exists
         if handlerName in self._handlers[op]:
@@ -58,7 +57,7 @@ class Registry:
         """
         handlers=self.get_handler(op)
         if handlers:
-            for handlerName,func in handlers:
+            for handlerName,func in handlers.items():
                 try:
                     result = func(params)
                     # Handlers optionally return a list of messages to send back

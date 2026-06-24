@@ -35,7 +35,7 @@ class Registry{
     }
 
     dispatch(op,params,ws,encode){
-        handlers=this.get_handler(op);
+        const handlers=this.get_handler(op);
         if (handlers){
             for (const key in handlers){
                 try{

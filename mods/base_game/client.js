@@ -46,6 +46,8 @@ function block_remove(params) {
     });
 }
 
-// Register handlers with frontend dispatch table
-registerHandler("block_add",block_add);
-registerHandler("block_remove",block_remove);
+// Register handlers
+wsRegistry.register_handler("block_add",block_add);
+wsRegistry.register_handler("block_remove",block_remove);
+// registerHandler("block_add",block_add);
+// registerHandler("block_remove",block_remove);
