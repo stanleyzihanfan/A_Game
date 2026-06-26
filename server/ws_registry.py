@@ -3,7 +3,6 @@
 # Mods call register_handler() to add their own ops
 class Registry:
     def __init__(self):
-        # op_name -> handler function
         self._handlers = {}
 
     def register_handler(self, op: str, func, name:str = None):

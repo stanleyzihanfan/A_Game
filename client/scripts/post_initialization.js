@@ -1,3 +1,4 @@
+
 function initClient() {
     // -- Console overrides (timestamp + forward to server) --------------------
     function formatCustom(date) {
@@ -50,12 +51,6 @@ function onModsReady() {
     // which mod client.js files have populated during load_mod_js
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
-        // const handler = wsDispatch[msg["op"]];
-        // if (handler) {
-        //     for (let i=0;i<handler.length;i++) handler[i](msg["params"]);
-        // } else {
-        //     console.warn("Backend attempted to access unknown frontend handler " + msg["op"]+" with params "+msg["params"]+".");
-        // }
         wsRegistry.dispatch(msg["op"],msg["params"],socket,encode);
     }
     // -- Trigger first mod op -------------------------------------------------
