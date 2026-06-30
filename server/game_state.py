@@ -1,7 +1,9 @@
+import threading
 #Central game state storage and accessing handler
 class GameState:
     def __init__(self):
         self._state={}
+        self._lock=threading.RLock()
     def add(self,key,value):
         """Add a key-value pair to game state and overrides existing value\n
         If value is a list, is directly set to key\n
@@ -10,10 +12,11 @@ class GameState:
         :param key: Key to add
         :param value: Value to add
         """
-        if isinstance(value,list):
-            self._state[key]=value
-        else:
-            self._state[key]=[value]
+        with self._lock:
+            if isinstance(value,list):
+                self._state[key]=value
+            else:
+                self._state[key]=[value]
     def append(self,key,value):
         """Append a value to end of list for key\n
         If key does not exist, adds pair
@@ -21,10 +24,11 @@ class GameState:
         :param key: Key to add
         :param value: Value to add
         """
-        if key in self._state:
-            self._state[key].append(value)
-        else:
-            self.add(key,value)
+        with self._lock:
+            if key in self._state:
+                self._state[key].append(value)
+            else:
+                self.add(key,value)
     def get(self,key):
         """Gets value for key
 
