@@ -1,4 +1,4 @@
-// Base game client mod
+// Test base game client mod
 // Runs via eval() after load_mod_js is received
 // Registers frontend WebSocket handlers for block_add and block_remove
 

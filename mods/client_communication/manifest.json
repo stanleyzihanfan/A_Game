@@ -1,10 +1,9 @@
 {
-    "modID": "base_game",
-    "name": "Base Game",
+    "modID": "client_communication",
+    "name": "Client Communication",
     "version": "0.1.0",
     "description": "Core voxel world functionality",
-    "author": "Stanley",
+    "author": "Eyeseminal",
     "backend_py": "main.py",
-    "client_js": "client.js",
     "dependencies": []
 }

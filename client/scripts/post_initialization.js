@@ -14,19 +14,19 @@ function initClient() {
     console.log = function(...args) {
         const timestamp = formatCustom(new Date());
         originalLog.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op": "log", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
+        socket.send(encode({"op": "client_communication:log", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
     }
     const originalWarn = console.warn;
     console.warn = function(...args) {
         const timestamp = formatCustom(new Date());
         originalWarn.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op": "warn", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
+        socket.send(encode({"op": "client_communication:warn", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
     }
     const originalError = console.error;
     console.error = function(...args) {
         const timestamp = formatCustom(new Date());
         originalError.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
+        socket.send(encode({"op": "client_communication:error", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
     }
     //Error handling
     window.onerror = function(msg, src, line, col, err) {
@@ -34,14 +34,14 @@ function initClient() {
         if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
         const timestamp = formatCustom(new Date());
         //originalError.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`]}));
+        socket.send(encode({"op": "client_communication:error", "params": [timestamp, `[Client#${clientID}]`, `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`]}));
         return false;
     };
     window.onunhandledrejection = function(e) {
         const div = document.getElementById("errorlog");
         if (div) div.innerText += `UNHANDLED PROMISE: ${e.reason}\n`;
         //originalError.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op": "error", "params": [timestamp, `[Client#${clientID}]`, `UNHANDLED PROMISE: ${e.reason}\n`]}));
+        socket.send(encode({"op": "client_communication:error", "params": [timestamp, `[Client#${clientID}]`, `UNHANDLED PROMISE: ${e.reason}\n`]}));
     };
 }
 
@@ -54,5 +54,5 @@ function onModsReady() {
         wsRegistry.dispatch(msg["op"],msg["params"],socket,encode);
     }
     // -- Trigger first mod op -------------------------------------------------
-    socket.send(encode({"op": "syncBlocks", "params": []}));
+    socket.send(encode({"op": "testmod:syncBlocks", "params": []}));
 }
