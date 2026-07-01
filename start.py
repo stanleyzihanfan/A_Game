@@ -52,7 +52,7 @@ try:
                 print(text)
     else:
         print(f"Server running locally at http://localhost:{port}")
-        # Block forever so the server stays alive (tunnel loop did this implicitly before)
+        # Block forever so the server stays alive
         threading.Event().wait()
 
 # Cleanly catch KeyboardInterrupt (user stopping server)

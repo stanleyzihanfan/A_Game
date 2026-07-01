@@ -1,2 +1,2 @@
 # A-Game
-Run python3 -m server.start from the repository root directory to launch.
+Run python3 server.start from the repository root directory to launch.

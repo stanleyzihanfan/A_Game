@@ -5,6 +5,7 @@ from flask_sock import Sock
 from werkzeug.serving import make_server
 
 from server.ws_registry import Registry
+from server.game_state import GameState
 from server.mod_loader import load_mods
 
 # Resolve project root (one level up from server/)
@@ -16,9 +17,12 @@ app = Flask(__name__)
 CORS(app)
 wSocket = Sock(app)
 
-# -- Central mod registry ------------------------------------------------------
-# Mods register their WebSocket op handlers here
+# -- Global Vars ------------------------------------------------------
+# Mod web socket handler registry
 registry = Registry()
+
+#Game state storage
+game_state=GameState()
 
 #Mod manifests, used for sending JS frontend mod handler registration to frontend
 loaded_mods=[]
@@ -103,8 +107,13 @@ def server(ws):
         with active_connections_lock:
             active_connections.discard(ws)
 
-# -- Find open port for Flask server -------------------------------------------
 def find_port(start=5000):
+    """Find open port for Flask server\n
+    If current port isn't open, repeated increments port number by 1 until open port is found
+
+    :param start: First port to search
+    :return: Number of first open port found
+    """
     port = start
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -118,6 +127,8 @@ def find_port(start=5000):
 
 # -- Server startup ------------------------------------------------------------
 def start():
+    """Server startup
+    """
     global flask_server, loaded_mods
     #load mods
     loaded_mods=load_mods(registry)
@@ -132,6 +143,8 @@ def start():
 
 # -- Graceful shutdown ---------------------------------------------------------
 def shutdown():
+    """Gracefully shuts down all systems
+    """
     with active_connections_lock:
         for ws in active_connections:
             try:
