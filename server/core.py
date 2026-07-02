@@ -1,4 +1,4 @@
-import socket, threading, msgpack, traceback, os, mimetypes
+import socket, threading, msgpack, traceback, os, mimetypes, time
 from flask import Flask, Response
 from flask_cors import CORS
 from flask_sock import Sock
@@ -18,6 +18,9 @@ CORS(app)
 wSocket = Sock(app)
 
 # -- Global Vars ------------------------------------------------------
+#Main game tick thread
+tick_thread=None
+
 # Mod web socket handler registry
 registry = Registry()
 
@@ -126,7 +129,13 @@ def find_port(start=5000):
                 port += 1
 
 # -- Server startup ------------------------------------------------------------
+def start_tick(interval):
+    print("Started game...")
+    registry.dispatch("tick",wSocket,encode)
+    time.sleep(interval)
+tick_thread=threading.Thread(target=start_tick,args=(0.05,),daemon=True)
 def start():
+    #TODO:Launch Tick thread
     """Server startup
     """
     global flask_server, loaded_mods

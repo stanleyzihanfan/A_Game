@@ -3,7 +3,7 @@
 # Mods call register_handler() to add their own ops
 class Registry:
     def __init__(self):
-        self._handlers = {}
+        self._handlers = {"tick":{}}
 
     def register_handler(self, op: str, func, name:str = None):
         """
@@ -45,7 +45,7 @@ class Registry:
         return self._handlers.get(op)
 
     #Dispatch a hook/handler
-    def dispatch(self, op: str, params:list, ws, encode):
+    def dispatch(self, op: str, ws, encode):
         """
         Dispatch a hook/handler
 
@@ -58,11 +58,7 @@ class Registry:
         if handlers:
             for handlerName,func in handlers.items():
                 try:
-                    result = func(params)
-                    # Handlers optionally return a list of messages to send back
-                    if result:
-                        for msg in result:
-                            ws.send(encode(msg))
+                    func()
                 except Exception as e:
                     print(f"\x1b[31mHandler '{handlerName}' under '{op}' failed:\033[0m")
                     print(f"  {type(e).__name__}: {e}")
