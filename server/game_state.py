@@ -4,44 +4,22 @@ class GameState:
     def __init__(self):
         self._state={}
         self._lock=threading.RLock()
-    def add(self,key:list,value):
-        """Add a key-value pair to game state and overrides existing leaves for related keys\n
-        If value is a list, is directly set to key\n
-        Else added to key as list with single value
+    def set(self,key:list,value,override=False):
+        """Sets a key-value pair to game state
         
         :param key: Key to add
         :param value: Value to add
+        :param override: Whether to override any conflicting leaves
         """
         with self._lock:
             last = self._state
             for k in key[:-1]:
-                if k not in last or not isinstance(last,dict):
-                    last[k] = {}
-                last = last[k]
-            if isinstance(value,list):
-                last[key[-1]] = value
-            else:
-                last[key[-1]]=[value]
-    def append(self,key:list,value):
-        """Append a value to end of list for key\n
-        If key does not exist, adds pair
-
-        :param key: Key to add
-        :param value: Value to add
-        :return: Index in list of value
-        """
-        with self._lock:
-            last = self._state
-            for k in key[:-1]:
+                if not isinstance(last,dict) and not override:
+                    raise KeyError('`Key {key} does not exist in game state`')
                 if k not in last:
                     last[k] = {}
                 last = last[k]
-            if key[-1] in last:
-                last[key[-1]].append(value)
-                return len(last[key[-1]])-1
-            else:
-                last[key[-1]]=[value]
-                return 0
+            last[key[-1]] = value
     def get(self,key:list,deepcopy=True):
         """Gets value for key\n
         WARNING: When using deepcopy=False, make sure it is used with thread lock

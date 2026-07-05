@@ -104,7 +104,12 @@ def server(ws):
                 break
             data = decode(data)
             # Route message to game state
-            game_state.append(["client_receive_buffer",data["op"]],data["params"])
+            # game_state.append(["client_receive_buffer",data["op"]],data["params"])
+            with game_state._lock:
+                clientData=game_state.get(["client_receive_buffer",data["op"]],False)
+                if clientData==None:
+                    game_state.set(["client_receive_buffer",data["op"]],[])
+                    clientData=game_state.get(["client_receive_buffer",data["op"]],False)
     finally:
         #Remove from connected clients on client disconnect
         with active_connections_lock:
@@ -131,8 +136,14 @@ def find_port(start=5000):
 # -- Server startup ------------------------------------------------------------
 def start_tick(interval):
     print("Started game...")
-    registry.dispatch("main:tick_hook",game_state)
-    time.sleep(interval)
+    while True:
+        try:
+            registry.dispatch("main:tick_hook",game_state)
+        except Exception as e:
+            if "Handled" not in e.__notes__:
+                traceback.print_exc()
+            input("Please press enter to continue execution:")
+        time.sleep(interval)
 tick_thread=threading.Thread(target=start_tick,args=(0.05,),daemon=True)
 def start():
     """Server startup

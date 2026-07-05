@@ -5,7 +5,10 @@ from server.ws_registry import Registry
 # -- Handler functions ---------------------------------------------------------
 
 def log(gameState:GameState,registry:Registry):
+    
     data=gameState.get(["client_receive","client:log"])
+    if data==None:
+        return
     # Print each param space-separated, first param has no leading space
     for i in range(len(data)):
         if i == 0:
@@ -16,6 +19,8 @@ def log(gameState:GameState,registry:Registry):
 
 def warn(gameState:GameState,registry:Registry):
     data=gameState.get(["client_receive","client:warn"])
+    if data==None:
+        return
     for i in range(len(data)):
         if i == 0:
             print("\033[33m" + data[i] + "\033[0m", end='')
@@ -25,6 +30,8 @@ def warn(gameState:GameState,registry:Registry):
 
 def error(gameState:GameState,registry:Registry):
     data=gameState.get(["client_receive","client:error"])
+    if data==None:
+        return
     for i in range(len(data)):
         if i == 0:
             print("\x1b[38;2;255;0;0m" + data[i] + "\033[0m", end='')
@@ -35,8 +42,8 @@ def error(gameState:GameState,registry:Registry):
 
 def process_client_hook_handler(gameState:GameState,registry:Registry):
     with gameState._lock:
-        gameState.add(["client_receive"],gameState.get(["client_receive_buffer"]))
-        gameState.add(["client_receive_buffer"],{})
+        gameState.set(["client_receive"],gameState.get(["client_receive_buffer"]))
+        gameState.set(["client_receive_buffer"],{})
         registry.dispatch("client_communication:process_client_hook",gameState)
 
 # -- Mod entry point -----------------------------------------------------------

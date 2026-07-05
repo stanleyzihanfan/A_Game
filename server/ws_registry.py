@@ -1,3 +1,4 @@
+from server.game_state import GameState
 # Central WebSocket op handler registry
 # Replaces the wsDispatch dict in the original backend.py
 # Mods call register_handler() to add their own ops
@@ -26,7 +27,7 @@ class Registry:
             print(f"\033[33m  [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
         #Register function in _handlers
         self._handlers[op][handlerName]=func
-        print(f"  New handler registered under {op}.")
+        print(f"  New handler {handlerName} registered under {op}.")
 
     def get_handler(self, op:str, name:str = None):
         """
@@ -45,7 +46,7 @@ class Registry:
         return self._handlers.get(op)
 
     #Dispatch a hook/handler
-    def dispatch(self, op: str, gameState):
+    def dispatch(self, op: str, gameState:GameState):
         """
         Dispatch a hook/handler
 
@@ -55,9 +56,11 @@ class Registry:
         if handlers:
             for handlerName,func in handlers.items():
                 try:
-                    func(gameState)
+                    func(gameState,self)
                 except Exception as e:
                     print(f"\x1b[31mHandler '{handlerName}' under '{op}' failed:\033[0m")
                     print(f"  {type(e).__name__}: {e}")
+                    e.add_note("Handled")
+                    raise
         else:
             print(f"\x1b[31mFrontend attempted to access unknown handler {op}\033[0m")

@@ -57,7 +57,7 @@ try:
 
 # Cleanly catch KeyboardInterrupt (user stopping server)
 except KeyboardInterrupt:
-    print("Ctrl+C received, shutting down...")
+    print("\nCtrl+C received, shutting down...")
 except BaseException:
     traceback.print_exc()
 finally:
