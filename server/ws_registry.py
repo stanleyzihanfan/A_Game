@@ -45,20 +45,17 @@ class Registry:
         return self._handlers.get(op)
 
     #Dispatch a hook/handler
-    def dispatch(self, op: str, ws, encode):
+    def dispatch(self, op: str, gameState):
         """
         Dispatch a hook/handler
 
         :param op: Event hook to dispatch
-        :param params: List of parameters to be passed to functions
-        :param ws: WebSocket object
-        :param encode: msgPack encoding function
         """
         handlers=self.get_handler(op)
         if handlers:
             for handlerName,func in handlers.items():
                 try:
-                    func()
+                    func(gameState)
                 except Exception as e:
                     print(f"\x1b[31mHandler '{handlerName}' under '{op}' failed:\033[0m")
                     print(f"  {type(e).__name__}: {e}")

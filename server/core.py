@@ -103,8 +103,8 @@ def server(ws):
             if data is None:
                 break
             data = decode(data)
-            # Route message to handler
-            registry.dispatch(data["op"], data["params"], ws, encode)
+            # Route message to game state
+            game_state.append(["client_receive_buffer",data["op"]],data["params"])
     finally:
         #Remove from connected clients on client disconnect
         with active_connections_lock:
@@ -112,7 +112,7 @@ def server(ws):
 
 def find_port(start=5000):
     """Find open port for Flask server\n
-    If current port isn't open, repeated increments port number by 1 until open port is found
+    If current port isn't open, repeatedly increments port number by 1 until open port is found
 
     :param start: First port to search
     :return: Number of first open port found
@@ -131,11 +131,10 @@ def find_port(start=5000):
 # -- Server startup ------------------------------------------------------------
 def start_tick(interval):
     print("Started game...")
-    registry.dispatch("tick",wSocket,encode)
+    registry.dispatch("main:tick_hook",game_state)
     time.sleep(interval)
 tick_thread=threading.Thread(target=start_tick,args=(0.05,),daemon=True)
 def start():
-    #TODO:Launch Tick thread
     """Server startup
     """
     global flask_server, loaded_mods
@@ -148,6 +147,8 @@ def start():
     t = threading.Thread(target=flask_server.serve_forever, daemon=True)
     t.start()
     print(f"Flask running on port {port}")
+    tick_thread.start()
+    print("Started ticking thread")
     return port
 
 # -- Graceful shutdown ---------------------------------------------------------
