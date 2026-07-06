@@ -31,13 +31,13 @@ class GameState:
         with self._lock:
             last=self._state
             for k in key:
-                if k not in last:
+                if not isinstance(last,dict) or k not in last:
                     return None
                 last=last[k]
             if deepcopy:
                 return copy.deepcopy(last)
             else:
-                return 
+                return last
     def exists(self,key:list):
         """Get if a key exists
 
@@ -47,7 +47,7 @@ class GameState:
         with self._lock:
             last = self._state
             for k in key:
-                if k not in last:
+                if not isinstance(last,dict) or k not in last:
                     return False
                 last = last[k]
             return True

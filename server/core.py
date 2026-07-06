@@ -107,9 +107,10 @@ def server(ws):
             # game_state.append(["client_receive_buffer",data["op"]],data["params"])
             with game_state._lock:
                 clientData=game_state.get(["client_receive_buffer",data["op"]],False)
-                if clientData==None:
+                if not game_state.exists(["client_receive_buffer",data["op"]]):
                     game_state.set(["client_receive_buffer",data["op"]],[])
                     clientData=game_state.get(["client_receive_buffer",data["op"]],False)
+                clientData.append(data["params"])
     finally:
         #Remove from connected clients on client disconnect
         with active_connections_lock:

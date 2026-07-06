@@ -5,17 +5,17 @@ from server.ws_registry import Registry
 # -- Handler functions ---------------------------------------------------------
 
 def log(gameState:GameState,registry:Registry):
-    
-    data=gameState.get(["client_receive","client:log"])
-    if data==None:
+    lines=gameState.get(["client_receive","client:log"])
+    if lines==None:
         return
-    # Print each param space-separated, first param has no leading space
-    for i in range(len(data)):
-        if i == 0:
-            print(data[i], end='')
-        else:
-            print(data[i], end=' ')
-    print()
+    for data in lines:
+        # Print each param space-separated, first param has no leading space
+        for i in range(len(data)):
+            if i == 0:
+                print(data[i], end='')
+            else:
+                print(data[i], end=' ')
+        print()
 
 def warn(gameState:GameState,registry:Registry):
     data=gameState.get(["client_receive","client:warn"])

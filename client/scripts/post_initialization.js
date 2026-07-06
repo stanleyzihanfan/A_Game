@@ -53,6 +53,7 @@ function onModsReady() {
         const msg = msgpack.decode(new Uint8Array(e.data));
         wsRegistry.dispatch(msg["op"],msg["params"],socket,encode);
     }
+    console.log(`Client loading complete`);
     // -- Trigger first mod op -------------------------------------------------
     socket.send(encode({"op": "testmod:syncBlocks", "params": []}));
 }
