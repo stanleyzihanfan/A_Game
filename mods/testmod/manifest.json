@@ -2,7 +2,7 @@
     "modID": "testmod",
     "name": "Test Mod",
     "version": "0.1.0",
-    "description": "Core voxel world functionality",
+    "description": "Testing mod",
     "author": "Eyeseminal",
     "backend_py": "main.py",
     "client_js": "client.js",

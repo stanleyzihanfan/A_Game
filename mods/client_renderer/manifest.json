@@ -1,0 +1,10 @@
+{
+    "modID": "client_rendering_communication",
+    "name": "Client Rendering Comms",
+    "version": "0.1.0",
+    "description": "Communication with client for rendering",
+    "author": "Eyeseminal",
+    "backend_py": "main.py",
+    "client_js": "client.js",
+    "dependencies": []
+}

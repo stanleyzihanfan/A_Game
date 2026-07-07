@@ -1,14 +1,14 @@
-// import GameState from './game_state.js';
+// Assuming GameState is imported from the appropriate module
+import {GameState} from './game_state.js';
 
 /**
  * Central WebSocket op handler registry
  * Replaces the wsDispatch dict in the original backend.py
  * Mods call register_handler() to add their own ops
  */
-export default class Registry {
+class Registry {
     constructor() {
         this._handlers = { tick: {} };
-        this.UFID=0;
     }
 
     /**
@@ -21,18 +21,17 @@ export default class Registry {
     register_handler(op, func, name = null) {
         let handlerName = name;
         // Create new event hook if not created
-        if (!Object.hasOwn(this._handlers,op)){
+        if (!(op in this._handlers)) {
             this._handlers[op] = {};
-            console.log(`  Frontend Event Hook ${op} created.`);
+            console.log(`    Event Hook ${op} created.`);
         }
         // If name is not provided, replace with _lambda+unique function ID to prevent collision
         if (handlerName === null) {
-            handlerName = `_lambda_${this.UFID}`;
-            this.UFID++;
+            handlerName = `_lambda_${Registry._getFunctionId(func)}`;
         }
-        // Warn if another handler with the same name already exists
-        if (Object.hasOwn(this._handlers[op],handlerName)){
-            console.warn(`  Handler ${handlerName} already registered under ${op}, overwriting!`);
+        // Warn if another handler with same name already exists
+        if (handlerName in this._handlers[op]) {
+            console.warn(`    [WARN] Handler ${handlerName} already registered under ${op}, overwriting!`);
         }
         // Register function in _handlers
         this._handlers[op][handlerName] = func;
@@ -49,7 +48,7 @@ export default class Registry {
      * Returns null if not found.
      */
     get_handler(op, name = null) {
-        if (name && Object.hasOwn(this._handlers,op)){
+        if (name && op in this._handlers) {
             return this._handlers[op][name] || null;
         }
         return this._handlers[op] || null;
@@ -64,8 +63,8 @@ export default class Registry {
     dispatch(op, gameState) {
         const handlers = this.get_handler(op);
         if (handlers) {
-            for (const [handlerName, func] of Object.entries(handlers)){
-                try{
+            for (const [handlerName, func] of Object.entries(handlers)) {
+                try {
                     func(gameState, this);
                 } catch (e) {
                     console.error(`Handler '${handlerName}' under '${op}' failed:`);
@@ -73,8 +72,18 @@ export default class Registry {
                     throw e;
                 }
             }
-        }else{
-            console.warn(`Backend attempted to access unknown frontend handler ${op}.`);
+        } else {
+            console.error(`Frontend attempted to access unknown handler ${op}`);
         }
     }
+
+    // Helper to generate a unique ID for a function (since JS doesn't have id())
+    static _getFunctionId(func) {
+        if (!func._funcId) {
+            func._funcId = Registry._nextFuncId++;
+        }
+        return func._funcId;
+    }
 }
+Registry._nextFuncId = 1;
+

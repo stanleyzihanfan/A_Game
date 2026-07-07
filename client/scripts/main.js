@@ -55,6 +55,7 @@ function updateCamera(dt) {
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
 function loop() {
+    wsRegistry.dispatch("main:tick")
     requestAnimationFrame(loop);
     const now = performance.now();
     const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral

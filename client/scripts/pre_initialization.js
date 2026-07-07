@@ -1,3 +1,4 @@
+// import Registry from './client_ws_registry.js'
 //Error debug script
 window.onerror = function(msg, src, line, col, err) {
     const div = document.getElementById("errorlog");
@@ -28,7 +29,7 @@ let clientID=-1;
 // -- THREE.js Scene setup --------------------------------------------------------------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-//scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
+scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
