@@ -1,5 +1,3 @@
-// import GameState from './game_state.js';
-
 /**
  * Central WebSocket op handler registry
  * Replaces the wsDispatch dict in the original backend.py

@@ -1,4 +1,3 @@
-// import Registry from './client_ws_registry.js'
 //Error debug script
 window.onerror = function(msg, src, line, col, err) {
     const div = document.getElementById("errorlog");
