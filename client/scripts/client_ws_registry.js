@@ -5,9 +5,9 @@
  * Replaces the wsDispatch dict in the original backend.py
  * Mods call register_handler() to add their own ops
  */
-export default class Registry {
+class Registry {
     constructor() {
-        this._handlers = { tick: {} };
+        this._handlers = { "main:tick": {} };
         this.UFID=0;
     }
 
@@ -74,7 +74,7 @@ export default class Registry {
                 }
             }
         }else{
-            console.warn(`Backend attempted to access unknown frontend handler ${op}.`);
+            console.warn(`Attempted to access unknown frontend handler ${op}.`);
         }
     }
 }

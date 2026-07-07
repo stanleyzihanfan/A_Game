@@ -24,10 +24,10 @@ class Registry:
             handlerName=f"_lambda_{id(func)}"
         #Warn if another handler with same name already exists
         if handlerName in self._handlers[op]:
-            print(f"\033[33m  [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
+            print(f"\033[33m    [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
         #Register function in _handlers
         self._handlers[op][handlerName]=func
-        print(f"  New handler {handlerName} registered under {op}.")
+        print(f"    New handler {handlerName} registered under {op}.")
 
     def get_handler(self, op:str, name:str = None):
         """

@@ -18,26 +18,28 @@ def log(gameState:GameState,registry:Registry):
         print()
 
 def warn(gameState:GameState,registry:Registry):
-    data=gameState.get(["client_receive","client:warn"])
-    if data==None:
+    lines=gameState.get(["client_receive","client:warn"])
+    if lines==None:
         return
-    for i in range(len(data)):
-        if i == 0:
-            print("\033[33m" + data[i] + "\033[0m", end='')
-        else:
-            print("\033[33m" + data[i] + "\033[0m", end=' ')
-    print()
+    for data in lines:
+        for i in range(len(data)):
+            if i == 0:
+                print("\033[33m" + data[i] + "\033[0m", end='')
+            else:
+                print("\033[33m" + data[i] + "\033[0m", end=' ')
+        print()
 
 def error(gameState:GameState,registry:Registry):
-    data=gameState.get(["client_receive","client:error"])
-    if data==None:
+    lines=gameState.get(["client_receive","client:error"])
+    if lines==None:
         return
-    for i in range(len(data)):
-        if i == 0:
-            print("\x1b[38;2;255;0;0m" + data[i] + "\033[0m", end='')
-        else:
-            print("\x1b[38;2;255;0;0m" + data[i] + "\033[0m", end=' ')
-    print()
+    for data in lines:
+        for i in range(len(data)):
+            if i == 0:
+                print("\x1b[38;2;255;0;0m" + data[i] + "\033[0m", end='')
+            else:
+                print("\x1b[38;2;255;0;0m" + data[i] + "\033[0m", end=' ')
+        print()
 
 
 def process_client_hook_handler(gameState:GameState,registry:Registry):
