@@ -23,6 +23,8 @@ const socket= new WebSocket(socketUrl);
 socket.binaryType="arraybuffer";
 //WebSocket Registry
 const wsRegistry=new Registry();
+//Game state
+const gameState=new GameState();
 //Client ID
 let clientID=-1;
 // -- THREE.js Scene setup --------------------------------------------------------------

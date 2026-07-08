@@ -14,9 +14,9 @@ class GameState:
         with self._lock:
             last = self._state
             for k in key[:-1]:
-                if not isinstance(last,dict) and not override:
-                    raise KeyError('`Key {key} does not exist in game state`')
-                if k not in last:
+                if k not in last or not isinstance(last[k], dict):
+                    if k in last and not override:
+                        raise KeyError(f'Key {key} does not exist in game state')
                     last[k] = {}
                 last = last[k]
             last[key[-1]] = value

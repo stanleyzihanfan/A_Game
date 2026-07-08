@@ -36,7 +36,7 @@ const up = new THREE.Vector3(0, 1, 0);
 function updateCamera(dt) {
     // Rotation: yaw around world Y, pitch around local X
     camera.rotation.order = "YXZ";
-    camera.rotation.y = yaw;
+    camera.rotation.y = yaw; 
     camera.rotation.x = pitch;
 
     // Movement directions derived from yaw only (no tilt on strafe/forward)
@@ -52,10 +52,17 @@ function updateCamera(dt) {
     if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
 }
 
+// -- Resize handler ------------------------------------------------------------
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
 function loop() {
-    wsRegistry.dispatch("main:tick")
+    wsRegistry.dispatch("main:tick",gameState);
     requestAnimationFrame(loop);
     const now = performance.now();
     const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
@@ -64,10 +71,3 @@ function loop() {
     renderer.render(scene, camera);
 }
 loop();
-
-// -- Resize handler ------------------------------------------------------------
-window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});

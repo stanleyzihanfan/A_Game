@@ -17,14 +17,11 @@ class GameState {
         let last = this._state;
         for (let i = 0; i < key.length - 1; i++) {
             const k = key[i];
-            if (typeof last !== 'object' || last === null) {
-                if (!override) {
+            if (!(k in last) || typeof last[k] !== 'object' || last[k]===null || Array.isArray(last[k])){
+                if (k in last && !override){
                     throw new Error(`Key ${key} does not exist in game state`);
                 }
-                last = {};
-            }
-            if (!(k in last)) {
-                last[k] = {};
+                last[k]={};
             }
             last = last[k];
         }
