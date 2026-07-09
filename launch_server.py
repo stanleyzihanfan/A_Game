@@ -61,7 +61,7 @@ except KeyboardInterrupt:
 except BaseException:
     traceback.print_exc()
 finally:
-    print("Gracefully shutting down server...")
+    print("Gracefully shutting down backend server...")
     core.shutdown()
     if tunnelProc:
         tunnelProc.terminate()

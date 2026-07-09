@@ -62,7 +62,14 @@ window.addEventListener("resize", () => {
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
 function loop() {
-    wsRegistry.dispatch("main:tick",gameState);
+    try{
+        wsRegistry.dispatch("main:tick",gameState);
+    } catch (e){
+        if (!e.handled){
+            console.error(e);
+        }
+        window.alert("Error has occured in main loop!");
+    }
     requestAnimationFrame(loop);
     const now = performance.now();
     const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral

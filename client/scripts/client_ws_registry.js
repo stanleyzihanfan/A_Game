@@ -68,6 +68,7 @@ class Registry {
                 } catch (e) {
                     console.error(`Handler '${handlerName}' under '${op}' failed:`);
                     console.error(`    ${e.name}: ${e.message}`);
+                    e.handled=true;
                     throw e;
                 }
             }

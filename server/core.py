@@ -49,22 +49,7 @@ def decode(data):
 #Serve html frontend page
 @app.route("/")
 def index():
-    # Read frontend.html from disk, relative to project root
-    with open(os.path.join(BASE_DIR, "client/frontend.html"), "r") as f:
-        return Response(f.read(), mimetype="text/html")
-#Serve JS files(for frontend src requests)
-@app.route("/<path:filename>")
-def static_file(filename):
-    # Serve static files from project root
-    filepath = os.path.join(BASE_DIR, filename)
-    # Auto-detect mimetype from file extension
-    mimetype, _ = mimetypes.guess_type(filepath)
-    if not mimetype:
-        mimetype = "text/plain"
-    if not os.path.isfile(filepath):
-        return "Not found", 404
-    with open(filepath, "r") as f:
-        return Response(f.read(), mimetype=mimetype)
+    return Response("<html><body>Server is running.</body></html>", mimetype="text/html")
 
 # -- WebSocket -----------------------------------------------------------------
 # Patch client mod js scripts
@@ -131,7 +116,7 @@ def find_port(start=5000):
                 return port
             except OSError:
                 print(f"Port {port} already in use, trying {port+1} next")
-                print()
+                #print()
                 port += 1
 
 # -- Server startup ------------------------------------------------------------

@@ -17,9 +17,44 @@ window.onunhandledrejection = function(e) {
 function encode(msg){
     return msgpack.encode(msg);
 }
-//Web Socket variables
-const socketUrl=location.href.replace(/^http/,"ws")+"server";
-const socket= new WebSocket(socketUrl);
+//Derive web socket URL from API URL
+function normalizeServerURL(input) {
+    if (typeof input !== 'string') throw new TypeError("Input must be string!");
+    let url = input.trim().replace(/\/+$/, "");        // strip trailing slash(es)
+    url = url.replace(/^https/, "wss").replace(/^http/, "ws");
+    return url + "/server";
+}
+
+let lastURL = localStorage.getItem("serverURL") || "";
+let rawInput = null, socketUrl = null;
+try{
+    while (!socketUrl) {
+        rawInput = window.prompt(
+            "Enter server API link (e.g. https://xxxx.trycloudflare.com or http://localhost:5000):",
+            lastURL
+        );
+        if (rawInput) socketUrl = normalizeServerURL(rawInput);
+    }
+} catch(e){
+        console.error("It appears that the client was unable to open a pop-up prompt for API link input!");
+        console.warn("  Falling back to terminal input...");
+        fetch(`/requestAPIlink_fallback/${lastURL}`).then((r)=>{
+            // rawInput=r;
+            // if (rawInput==="") rawInput=lastURL;
+            socketUrl=normalizeServerURL(r);
+        });
+
+        // const readline=require('readline/promises');
+        // const { stdin: input, stdout: output } = require('process');
+        // const rl = readline.createInterface({ input, output });
+        // rl.question(`Enter server API link (e.g. https://xxxx.trycloudflare.com or http://localhost:5000), \n Or press enter to autofill last link(${lastURL}:`).then((r)=>{
+        //     rawInput=r;
+        //     if (rawInput=="") rawInput=lastURL;
+        // });
+}
+localStorage.setItem("serverURL", rawInput);
+const socket = new WebSocket(socketUrl);
+
 socket.binaryType="arraybuffer";
 //WebSocket Registry
 const wsRegistry=new Registry();
