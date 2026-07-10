@@ -5,7 +5,7 @@
  */
 class Registry {
     constructor() {
-        this._handlers = { "main:tick": {} };
+        this._handlers = { "main:tick": {} ,"main:keydown":{}, "main:keyup":{}};
         this.UFID=0;
     }
 

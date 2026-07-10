@@ -6,8 +6,15 @@ let Speed = 8; // units per second
 const SCROLL_DIALATION=0.005;
 const SENSITIVITY = 0.002; // radians per pixel
 
-document.addEventListener("keydown", e => { keys[e.code] = true;    e.preventDefault(); });
-document.addEventListener("keyup",     e => { keys[e.code] = false; });
+document.addEventListener("keydown", e => { 
+    keys[e.code] = true;    
+    e.preventDefault(); 
+    wsRegistry.dispatch("main:keydown",gameState);
+});
+document.addEventListener("keyup", e => { 
+    keys[e.code] = false; 
+    wsRegistry.dispatch("main:keyup",gameState);
+});
 
 // Pointer lock
 renderer.domElement.addEventListener("click", () => {
@@ -61,12 +68,20 @@ window.addEventListener("resize", () => {
 
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
+let tickDelta=0
+let tickrate=1/20;
 function loop() {
-    wsRegistry.dispatch("main:tick",gameState);
     requestAnimationFrame(loop);
+    
     const now = performance.now();
     const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
     last = now;
+    tickDelta+=dt;
+    while (tickDelta>=tickrate){
+        wsRegistry.dispatch("main:tick",gameState);
+        //updateCamera(tickrate);
+        tickDelta-=tickrate;
+    }
     updateCamera(dt);
     renderer.render(scene, camera);
 }

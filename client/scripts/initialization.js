@@ -50,12 +50,27 @@ function initClient() {
 }
 
 function onModsReady() {
-    // -- Hand off WebSocket to mod dispatch table ------------------------------
-    // From this point all messages are routed through wsRegistry
-    // which mod client.js files have populated during load_mod_js
+    // -- Hand off WebSocket to gamestate ------------------------------
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
-        wsRegistry.dispatch(msg["op"],msg["params"],socket,encode);
+        // wsRegistry.dispatch(msg["op"],msg["params"],socket,encode);
+        // # Route message to game state
+        // with game_state._lock:
+        //     clientData=game_state.get(["client_receive_buffer",data["op"]],False)
+        //     if not game_state.exists(["client_receive_buffer",data["op"]]):
+        //         game_state.set(["client_receive_buffer",data["op"]],[])
+        //         clientData=game_state.get(["client_receive_buffer",data["op"]],False)
+        //     clientData.append(data["params"])
+        //Route message to game state
+        // if (msg["op"]==="main:sync_with_client"){
+        //     gameState.set(["server_receive_buffer"],msg["params"])
+        // }
+        serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
+        if (!gameState.exists(["server_receive_buffer",msg["op"]])){
+            gameState.set(["server_receive_buffer",msg["op"]],[]);
+            serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
+        }
+        serverData.append(msg["params"]);
     }
     console.log(`Client loading complete`);
     // -- Trigger first mod op -------------------------------------------------

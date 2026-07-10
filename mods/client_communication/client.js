@@ -1,4 +1,4 @@
 //Client keystroke recording
-function recordKeystrokes(){
+function send(){
     
 }

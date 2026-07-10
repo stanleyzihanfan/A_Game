@@ -89,7 +89,6 @@ def server(ws):
                 break
             data = decode(data)
             # Route message to game state
-            # game_state.append(["client_receive_buffer",data["op"]],data["params"])
             with game_state._lock:
                 clientData=game_state.get(["client_receive_buffer",data["op"]],False)
                 if not game_state.exists(["client_receive_buffer",data["op"]]):
@@ -125,6 +124,7 @@ def start_tick(interval):
     while True:
         try:
             registry.dispatch("main:tick_hook",game_state)
+            wSocket.send(encode({}))
         except Exception as e:
             if "Handled" not in e.__notes__:
                 traceback.print_exc()
