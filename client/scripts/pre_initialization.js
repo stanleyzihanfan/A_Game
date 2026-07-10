@@ -19,6 +19,51 @@ function encode(msg){
     return msgpack.encode(msg);
 }
 
+// -- Client log socket ----------------------------------------------------------
+// Separate, independent WebSocket to the client asset server (this launcher),
+// used only for console.log/warn/error + window.onerror/onunhandledrejection.
+// Kept fully separate from the game `socket` — mods still report to the game
+// server explicitly via their own ops.
+let logSocket = null;
+let logSocketReady = false;
+const logQueue = [];
+const LOG_QUEUE_MAX = 500;
+
+function initLogSocket() {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    logSocket = new WebSocket(`${proto}//${location.host}/clientlog`);
+    // console.log("init");
+    logSocket.onopen = () => {
+        // console.log("ws open");
+        logSocketReady = true;
+        while (logQueue.length) {
+            logSocket.send(logQueue.shift());
+        }
+    };
+    logSocket.onclose = () => { logSocketReady = false; };
+    //logSocket.onerror = () => { /* swallow — logging must never break the client */ };
+}
+
+function sendClientLog(level, timestamp, args) {
+    const payload = encode({
+        level,
+        timestamp,
+        clientID,
+        args: args.map(a => {
+            try { return typeof a === "string" ? a : JSON.stringify(a); }
+            catch { return String(a); }
+        })
+    });
+    if (logSocketReady) {
+        logSocket.send(payload);
+    } else {
+        logQueue.push(payload);
+        // if (logQueue.length > LOG_QUEUE_MAX) logQueue.shift(); // drop oldest if backed up
+    }
+}
+
+initLogSocket();
+
 //Derive web socket URL from API URL
 function normalizeServerURL(input) {
     if (typeof input !== 'string') throw new TypeError("Input must be string!");

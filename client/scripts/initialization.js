@@ -19,34 +19,33 @@ function initClient() {
     console.log = function(...args) {
         const timestamp = formatCustom(new Date());
         originalLog.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op":"client:log", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
+        sendClientLog("log", timestamp, args);
     }
     const originalWarn = console.warn;
     console.warn = function(...args) {
         const timestamp = formatCustom(new Date());
         originalWarn.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op":"client:warn", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
+        sendClientLog("warn", timestamp, args);
     }
     const originalError = console.error;
     console.error = function(...args) {
         const timestamp = formatCustom(new Date());
         originalError.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op":"client:error", "params": [timestamp, `[Client#${clientID}]`, ...args]}));
+        sendClientLog("error", timestamp, args);
     }
     //Error handling
     window.onerror = function(msg, src, line, col, err) {
         const div = document.getElementById("errorlog");
         if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
         const timestamp = formatCustom(new Date());
-        //originalError.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op":"client:error", "params": [timestamp, `[Client#${clientID}]`, `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`]}));
+        sendClientLog("error", timestamp, [`ERROR: ${msg}\n  at ${src}:${line}:${col}\n`]);
         return false;
     };
     window.onunhandledrejection = function(e) {
         const div = document.getElementById("errorlog");
         if (div) div.innerText += `UNHANDLED PROMISE: ${e.reason}\n`;
-        //originalError.apply(console, [timestamp, ...args]);
-        socket.send(encode({"op":"client:error", "params": [timestamp, `[Client#${clientID}]`, `UNHANDLED PROMISE: ${e.reason}\n`]}));
+        const timestamp = formatCustom(new Date());
+        sendClientLog("error", timestamp, [`UNHANDLED PROMISE: ${e.reason}\n`]);
     };
 }
 

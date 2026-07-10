@@ -1,13 +1,22 @@
-import socket, os, threading, mimetypes
-from flask import Flask, Response,jsonify
+import socket, os, threading, mimetypes, msgpack
+from flask import Flask, Response, jsonify
 from flask_cors import CORS
+from flask_sock import Sock
 from werkzeug.serving import make_server
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # project root
 app = Flask(__name__)
 CORS(app)
+wSocket = Sock(app)
 
 flask_server = None
+
+# Track active log-socket connections for clean shutdown
+active_log_connections = set()
+active_log_connections_lock = threading.Lock()
+
+def decode(data):
+    return msgpack.unpackb(data, raw=False)
 
 @app.route("/")
 def index():
@@ -27,23 +36,36 @@ def static_file(filename):
     with open(filepath, "r") as f:
         return Response(f.read(), mimetype=mimetype)
 
-@app.route('/requestAPIlink_fallback/', defaults={'item_id': None})
-@app.route("/requestAPIlink_fallback/<default>")
-def request_link(default):
-    print("\x1b[38;2;255;0;0mIt appears that the client was unable to open a prompt pop-up for API link input!\033[0m")
-    print("\033[33m  Please enter the link here instead.\033[0m")
-    raw=None
-    while not raw:
-        print("  Enter server API link (e.g. https://xxxx.trycloudflare.com or http://localhost:5000),")
-        if default:
-            print(f"  Or press enter to autofill last link({default}):")
-        raw=input()
-        if raw=="":
-            raw=default
-        if not raw:
-            print("\x1b[38;2;255;0;0m  Invalid input, try again.\033[0m")
-    return jsonify({"rawURL":raw})
-    #print("It appears that the client was unable to open a prompt pop-up for API link input!")
+@wSocket.route("/clientlog")
+def clientlog(ws):
+    """Receives console.log/warn/error + window.onerror/onunhandledrejection
+    from the browser client and prints them to whichever terminal launched
+    this client asset server. Independent of the game server's WebSocket."""
+    with active_log_connections_lock:
+        active_log_connections.add(ws)
+    try:
+        while True:
+            data = ws.receive()
+            if data is None:
+                break
+            msg = decode(data)
+            level = msg.get("level", "log")
+            timestamp = msg.get("timestamp", "")
+            client_id = msg.get("clientID")
+            args = msg.get("args", [])
+
+            tag = f"[Client#{client_id}]" if client_id is not None else "[Client]"
+            line = " ".join(str(a) for a in args)
+
+            if level == "warn":
+                print(f"\033[33m{timestamp} {tag} {line}\033[0m")
+            elif level == "error":
+                print(f"\x1b[38;2;255;0;0m{timestamp} {tag} {line}\033[0m")
+            else:
+                print(f"{timestamp} {tag} {line}")
+    finally:
+        with active_log_connections_lock:
+            active_log_connections.discard(ws)
 
 def find_port(start=8000):
     """Find open port for Flask server\n
@@ -74,5 +96,11 @@ def start():
     return port
 
 def shutdown():
+    with active_log_connections_lock:
+        for ws in active_log_connections:
+            try:
+                ws.close()
+            except Exception:
+                pass
     if flask_server:
         flask_server.shutdown()
