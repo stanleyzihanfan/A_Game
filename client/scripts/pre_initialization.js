@@ -128,7 +128,6 @@ const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
 
     await loadScriptSequential([
         "client/scripts/initialization.js",
-        "client/scripts/post_initialization.js",
         "client/scripts/main.js"
     ]);
 })().catch(err => {
