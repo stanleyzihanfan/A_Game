@@ -1,6 +1,8 @@
 * { margin: 0; padding: 0; }
 body { background: #000; overflow: hidden; }
 canvas { display: block; }
+/* Crosshair */
+
 #crosshair {
     position: fixed; top: 50%; left: 50%;
     width: 16px; height: 16px;
@@ -12,6 +14,32 @@ canvas { display: block; }
 }
 #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
 #crosshair::after    { height: 2px; width: 100%; top: 50%;    transform: translateY(-50%); }
+
+/* Pre-Server connection */
+
+#server-connect-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+}
+#server-connect-box {
+    background: #111; border: 1px solid #444; border-radius: 8px;
+    padding: 24px; width: min(90vw, 420px);
+    font: 14px monospace; color: #fff;
+    display: flex; flex-direction: column; gap: 10px;
+}
+#server-connect-box label { color: #ccc; }
+#server-connect-box input {
+    padding: 8px; font: 14px monospace;
+    background: #000; color: #0f0; border: 1px solid #444; border-radius: 4px;
+}
+#server-connect-box button {
+    padding: 8px; font: 14px monospace; cursor: pointer;
+    background: #2a6; color: #fff; border: none; border-radius: 4px;
+}
+#server-connect-box button:hover { background: #3b7; }
+#server-url-error { color: #ff4444; min-height: 16px; }
 #info {
     position: fixed; top: 10px; left: 10px;
     color: white; font: 14px monospace;

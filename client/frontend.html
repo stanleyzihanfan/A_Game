@@ -10,6 +10,17 @@
 <div id="info">Click to capture mouse<br>WASD: move | Space: up | Shift: down | Mouse: look | Scroll:Change Speed</div>
 <div id="debug">Speed: 8</div>
 <div id="errorlog"></div>
+
+<!-- Server connect overlay: replaces window.prompt, works in any webview -->
+<div id="server-connect-overlay">
+    <div id="server-connect-box">
+        <label for="server-url-input">Enter server API link:</label>
+        <input type="text" id="server-url-input" placeholder="https://xxxx.trycloudflare.com or http://localhost:5000">
+        <button id="server-url-submit">Connect</button>
+        <div id="server-url-error"></div>
+    </div>
+</div>
+
 <!--            JS Scripts            -->
 
 <!--Library imports-->
@@ -19,12 +30,6 @@
 <script src="client/scripts/client_ws_registry.js"></script>
 <!--Pre Initialization Script-->
 <script src="client/scripts/pre_initialization.js"></script>
-<!--Web Socket initialization-->
-<script src="client/scripts/initialization.js"></script>
-<!--Web Socket Function declaration-->
-<script src="client/scripts/post_initialization.js"></script>
-<!--Player control & Render Loop-->
-<script src="client/scripts/main.js"></script>
 
 </body>
 </html>
