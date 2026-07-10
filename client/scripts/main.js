@@ -70,4 +70,3 @@ function loop() {
     updateCamera(dt);
     renderer.render(scene, camera);
 }
-loop();

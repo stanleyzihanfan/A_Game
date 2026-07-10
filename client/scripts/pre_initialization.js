@@ -167,14 +167,20 @@ const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
 
 // -- Bootstrap: resolve URL, open socket, then load the rest in order ----------
 (async () => {
-    const socketUrl = await getServerURL();
+    // Load scripts and wait for user input concurrently
+    const [, socketUrl] = await Promise.all([
+        loadScriptSequential([
+            "client/scripts/initialization.js",
+            "client/scripts/main.js"
+        ]),
+        getServerURL()
+    ]);
+
     socket = new WebSocket(socketUrl);
     socket.binaryType = "arraybuffer";
-
-    await loadScriptSequential([
-        "client/scripts/initialization.js",
-        "client/scripts/main.js"
-    ]);
+    socket.onopen = onSocketOpen;
+    socket.onmessage = onSocketMessage;
+    loop();
 })().catch(err => {
     console.error("Bootstrap failed:", err);
     const div = document.getElementById("errorlog");

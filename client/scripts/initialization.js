@@ -62,12 +62,12 @@ function onModsReady() {
     socket.send(encode({"op": "testmod:syncBlocks", "params": []}));
 }
 
-socket.onopen = () => {
+function onSocketOpen() {
     WSConnectStartTime = performance.now();
 }
 
 // Init handler — only runs until mods_ready is received
-socket.onmessage = (e) => {
+function onSocketMessage(e) {
     const msg = msgpack.decode(new Uint8Array(e.data));
     if (msg["op"] === "init") {
         clientID = msg["params"][0];
