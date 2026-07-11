@@ -5,13 +5,28 @@ let yaw = 0, pitch = 0;
 let Speed = 8; // units per second
 const SCROLL_DIALATION=0.005;
 const SENSITIVITY = 0.002; // radians per pixel
+const whitelist=[document.body,renderer.domElement];
+
+// Elements considered "the game screen" — keydown/keyup are only
+// processed for gameplay when one of these is focused. Everything else
+// (text inputs, future UI panels, etc.) passes keys through untouched.
+function isGameFocused() {
+    const active = document.activeElement;
+    return whitelist.includes(active);
+}
 
 document.addEventListener("keydown", e => { 
+    if (!isGameFocused()) {
+        return; // some other UI element is focused — let it handle typing normally
+    }
     keys[e.code] = true;    
     e.preventDefault(); 
     wsRegistry.dispatch("main:keydown",gameState);
 });
 document.addEventListener("keyup", e => { 
+    if (!isGameFocused()) {
+        return;
+    }
     keys[e.code] = false; 
     wsRegistry.dispatch("main:keyup",gameState);
 });

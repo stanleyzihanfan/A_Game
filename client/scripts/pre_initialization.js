@@ -82,14 +82,20 @@ function getServerURL() {
     return new Promise((resolve) => {
         const overlay = document.getElementById("server-connect-overlay");
         const input = document.getElementById("server-url-input");
+        const nameInput = document.getElementById("player-name-input");
+        const passwordInput = document.getElementById("player-password-input");
         const button = document.getElementById("server-url-submit");
         const errorDiv = document.getElementById("server-url-error");
 
         input.value = localStorage.getItem("serverURL") || "";
-        input.focus();
+        nameInput.value = localStorage.getItem("playerName") || "";
+        //input.focus();
 
         function submit() {
             const raw = input.value.trim();
+            const playerName = nameInput.value.trim();
+            const password = passwordInput.value; // not trimmed — spaces may be intentional
+
             if (!raw) {
                 errorDiv.innerText = "Please enter a server link.";
                 return;
@@ -101,11 +107,18 @@ function getServerURL() {
                 errorDiv.innerText = `Invalid URL: ${e.message}`;
                 return;
             }
+
             localStorage.setItem("serverURL", raw);
+            localStorage.setItem("playerName", playerName);
+            // password intentionally not persisted
+
             overlay.style.display = "none";
             button.removeEventListener("click", submit);
             input.removeEventListener("keydown", onKeydown);
-            resolve(normalized);
+            nameInput.removeEventListener("keydown", onKeydown);
+            passwordInput.removeEventListener("keydown", onKeydown);
+
+            resolve({ url: normalized, playerName, password });
         }
         function onKeydown(e) {
             if (e.key === "Enter") submit();
@@ -113,6 +126,8 @@ function getServerURL() {
 
         button.addEventListener("click", submit);
         input.addEventListener("keydown", onKeydown);
+        nameInput.addEventListener("keydown", onKeydown);
+        passwordInput.addEventListener("keydown", onKeydown);
     });
 }
 
@@ -138,6 +153,8 @@ let socket;                       // assigned once the URL is resolved, below
 const wsRegistry = new Registry();
 const gameState = new GameState();
 let clientID = -1;
+let playerName="";
+let playerPassword="";
 
 // -- THREE.js Scene setup --------------------------------------------------------------
 const scene = new THREE.Scene();
@@ -168,7 +185,7 @@ const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
 // -- Bootstrap: resolve URL, open socket, then load the rest in order ----------
 (async () => {
     // Load scripts and wait for user input concurrently
-    const [, socketUrl] = await Promise.all([
+    const [, connectInfo] = await Promise.all([
         loadScriptSequential([
             "client/scripts/initialization.js",
             "client/scripts/main.js"
@@ -176,7 +193,11 @@ const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
         getServerURL()
     ]);
 
-    socket = new WebSocket(socketUrl);
+    playerName = connectInfo.playerName;
+    playerPassword = connectInfo.password;
+    console.log(playerName);
+    console.log(playerPassword);
+    socket = new WebSocket(connectInfo.url);
     socket.binaryType = "arraybuffer";
     socket.onopen = onSocketOpen;
     socket.onmessage = onSocketMessage;

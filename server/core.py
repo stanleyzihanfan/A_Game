@@ -126,8 +126,14 @@ def start_tick(interval):
     print("Started game...")
     while True:
         try:
+            #Dispatch tick handler
             registry.dispatch("main:tick_hook",game_state)
-            wSocket.send(encode({}))
+            #Send data to client 
+            if game_state.exists(["sync_with_client"]):
+                with game_state._lock:
+                    toSync=game_state.get(["sync_with_client"],False)
+                    wSocket.send(encode({"sync_with_client":toSync}))
+                    toSync={}
         except Exception as e:
             if "Handled" not in e.__notes__:
                 traceback.print_exc()
