@@ -62,15 +62,17 @@ function onModsReady() {
         //         clientData=game_state.get(["client_receive_buffer",data["op"]],False)
         //     clientData.append(data["params"])
         //Route message to game state
-        // if (msg["op"]==="main:sync_with_client"){
-        //     gameState.set(["server_receive_buffer"],msg["params"])
-        // }
-        serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
-        if (!gameState.exists(["server_receive_buffer",msg["op"]])){
-            gameState.set(["server_receive_buffer",msg["op"]],[]);
-            serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
+        if (msg["op"]==="main:sync_with_client"){
+            gameState.set(["server_receive_buffer"],msg["params"]);
         }
-        serverData.append(msg["params"]);
+        else{
+            serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
+            if (!gameState.exists(["server_receive_buffer",msg["op"]])){
+                gameState.set(["server_receive_buffer",msg["op"]],[]);
+                serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
+            }
+            serverData.append(msg["params"]);
+        }
     }
     console.log(`Client loading complete`);
     // -- Trigger first mod op -------------------------------------------------

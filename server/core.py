@@ -90,11 +90,14 @@ def server(ws):
             data = decode(data)
             # Route message to game state
             with game_state._lock:
-                clientData=game_state.get(["client_receive_buffer",data["op"]],False)
-                if not game_state.exists(["client_receive_buffer",data["op"]]):
-                    game_state.set(["client_receive_buffer",data["op"]],[])
+                if data["op"]=="sync_with_server":
+                    clientData=game_state.set(["client_receive_buffer"],data["op"])
+                else:
                     clientData=game_state.get(["client_receive_buffer",data["op"]],False)
-                clientData.append(data["params"])
+                    if not game_state.exists(["client_receive_buffer",data["op"]]):
+                        game_state.set(["client_receive_buffer",data["op"]],[])
+                        clientData=game_state.get(["client_receive_buffer",data["op"]],False)
+                    clientData.append(data["params"])
     finally:
         #Remove from connected clients on client disconnect
         with active_connections_lock:
