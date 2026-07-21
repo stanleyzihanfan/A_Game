@@ -75,19 +75,18 @@ function onModsReady() {
         }
     }
     console.log(`Client loading complete`);
-    // -- Trigger first mod op -------------------------------------------------
-    socket.send(encode({"op": "testmod:syncBlocks", "params": []}));
+    loop();
 }
 
 function onSocketOpen() {
     WSConnectStartTime = performance.now();
+    socket.send(encode({"op":"init","playerName":playerName,"psw":playerPassword}));
 }
 
 // Init handler — only runs until mods_ready is received
 function onSocketMessage(e) {
     const msg = msgpack.decode(new Uint8Array(e.data));
     if (msg["op"] === "init") {
-        clientID = msg["params"][0];
         initClient();
         return;
     }

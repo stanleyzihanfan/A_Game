@@ -51,10 +51,10 @@ def clientlog(ws):
             msg = decode(data)
             level = msg.get("level", "log")
             timestamp = msg.get("timestamp", "")
-            client_id = msg.get("clientID")
+            playerName = msg.get("playerName")
             args = msg.get("args", [])
 
-            tag = f"[Client#{client_id}]" if client_id is not None else "[Client]"
+            tag = f"[Client #{playerName}]" if playerName is not None else "[Client]"
             line = " ".join(str(a) for a in args)
 
             if level == "warn":

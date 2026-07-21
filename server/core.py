@@ -31,11 +31,9 @@ game_state=GameState()
 loaded_mods=[]
 
 # Track active websocket connections
-active_connections = set()
+active_connections = {}
 active_connections_lock = threading.Lock()
 
-# Client ID counter
-clientID = 0
 flask_server = None
 
 # -- Binary packaging functions ------------------------------------------------
@@ -70,17 +68,26 @@ def _send_mod_scripts(ws):
 
 @wSocket.route("/server")
 def server(ws):
-    global clientID
-    # Store & increment clientID
-    myID = clientID
-    clientID += 1
-
-    #Add websocket to connected clients list
-    with active_connections_lock:
-        active_connections.add(ws)
     try:
-        # Send client its assigned ID so it can initialize
-        ws.send(encode({"op": "init", "params": [myID]}))
+        # Send request to client to initialize
+        ws.send(encode({"op": "init"}))
+        #Wait for clien to respond with player data
+        data=ws.receive()
+        if data is None:
+            return
+        data=decode(data)
+        if data["op"]!="init":
+            print("\033[33mA client attempted to connect but failed to send player data. Connection terminated.\033[0m")
+            return
+        if "playerName" not in data or "psw" not in data:
+            print("\033[33mA client attempted to connect but sent invalid player data. Connection terminated.\033[0m")
+            return
+        #Store player name
+        playerName=data["playerName"]
+        #Add socket to connected clients
+        with active_connections_lock:
+            active_connections[data["playerName"]]=ws
+        print(f"Client {playerName} connected.")
         #Stream client all mod JS files
         _send_mod_scripts(ws)
         while True:
@@ -91,7 +98,7 @@ def server(ws):
             # Route message to game state
             with game_state._lock:
                 if data["op"]=="sync_with_server":
-                    clientData=game_state.set(["client_receive_buffer"],data["op"])
+                    clientData=game_state.set(["client_receive_buffer"],data["params"])
                 else:
                     clientData=game_state.get(["client_receive_buffer",data["op"]],False)
                     if not game_state.exists(["client_receive_buffer",data["op"]]):
@@ -100,8 +107,11 @@ def server(ws):
                     clientData.append(data["params"])
     finally:
         #Remove from connected clients on client disconnect
-        with active_connections_lock:
-            active_connections.discard(ws)
+        #If playerName is none, the websocket was closed before it was added to active_connections
+        if playerName is not None:
+            with active_connections_lock:
+                active_connections.pop(playerName,None)
+            print(f"Client {playerName} disconnected.")
 
 def find_port(start=5000):
     """Find open port for Flask server\n
@@ -162,7 +172,7 @@ def shutdown():
     """Gracefully shuts down all systems
     """
     with active_connections_lock:
-        for ws in active_connections:
+        for k,ws in active_connections.items():
             try:
                 ws.close()
             except Exception:

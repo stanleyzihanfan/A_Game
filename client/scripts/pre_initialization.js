@@ -48,7 +48,7 @@ function sendClientLog(level, timestamp, args) {
     const payload = encode({
         level,
         timestamp,
-        clientID,
+        playerName,
         args: args.map(a => {
             try { return typeof a === "string" ? a : JSON.stringify(a); }
             catch { return String(a); }
@@ -133,9 +133,7 @@ function getServerURL() {
 
 // -- Sequential dynamic script loader ------------------------------------------
 // Loads scripts one at a time, waiting for each to finish before starting the
-// next. Needed because initialization.js/post_initialization.js/main.js all
-// assume `socket` already exists, and socket creation now depends on the
-// async URL prompt above.
+// next. Ensures socket is initialized before all scrips that require it runs.
 function loadScriptSequential(srcList) {
     return srcList.reduce((chain, src) => chain.then(() => new Promise((resolve, reject) => {
         const s = document.createElement("script");
@@ -152,7 +150,6 @@ function loadScriptSequential(srcList) {
 let socket;                       // assigned once the URL is resolved, below
 const wsRegistry = new Registry();
 const gameState = new GameState();
-let clientID = -1;
 let playerName="";
 let playerPassword="";
 
@@ -195,13 +192,10 @@ const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
 
     playerName = connectInfo.playerName;
     playerPassword = connectInfo.password;
-    console.log(playerName);
-    console.log(playerPassword);
     socket = new WebSocket(connectInfo.url);
     socket.binaryType = "arraybuffer";
     socket.onopen = onSocketOpen;
     socket.onmessage = onSocketMessage;
-    loop();
 })().catch(err => {
     console.error("Bootstrap failed:", err);
     const div = document.getElementById("errorlog");

@@ -94,6 +94,7 @@ function loop() {
     tickDelta+=dt;
     while (tickDelta>=tickrate){
         wsRegistry.dispatch("main:tick",gameState);
+        socket.send(encode({"op":"sync_with_server","params":gameState.get(["client_send_buffer"])}));
         //updateCamera(tickrate);
         tickDelta-=tickrate;
     }
