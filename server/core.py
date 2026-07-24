@@ -78,9 +78,11 @@ def server(ws):
         data=decode(data)
         if data["op"]!="init":
             print("\033[33mA client attempted to connect but failed to send player data. Connection terminated.\033[0m")
+            ws.close(1002,"Server did not receive initial player data")
             return
         if "playerName" not in data or "psw" not in data:
             print("\033[33mA client attempted to connect but sent invalid player data. Connection terminated.\033[0m")
+            ws.close(1003,"Server received invalid player data")
             return
         #Store player name
         playerName=data["playerName"]
@@ -88,6 +90,24 @@ def server(ws):
         with active_connections_lock:
             active_connections[data["playerName"]]=ws
         print(f"Client {playerName} connected.")
+        #Register 
+        with game_state._lock:
+            #Generate new player entry if it doesn't exist
+            if not game_state.exists(["players",playerName]):
+                game_state.set(["players",playerName,"online"],True,True)
+                game_state.set(["players",playerName,"password"],data["psw"],True)
+            #Check if player is already online
+            elif game_state.get(["players",playerName,"online"]):
+                print(f"\033[33mA client attempted to connect but player {playerName} is already online. Connection terminated.\033[0m")
+                ws.close(1002,"Player already online")
+                return
+            else:
+                #Check password
+                if game_state.get(["players",playerName,"password"])!=data["psw"]:
+                    print(f"\033[33mPlayer {playerName} connected with incorrect password.\033[0m")
+                    ws.close(1000,"Incorrect Password")
+                    return
+                game_state.set(["players",playerName,"online"],True)
         #Stream client all mod JS files
         _send_mod_scripts(ws)
         while True:
@@ -111,6 +131,9 @@ def server(ws):
         if playerName is not None:
             with active_connections_lock:
                 active_connections.pop(playerName,None)
+            #Set player to be offline
+            with game_state._lock:
+                game_state.set(["players",playerName,"online"],False,True)
             print(f"Client {playerName} disconnected.")
 
 def find_port(start=5000):
@@ -137,7 +160,7 @@ def start_tick(interval):
     while True:
         try:
             #Dispatch tick handler
-            registry.dispatch("main:tick_hook",game_state)
+            registry.dispatch("core:tick_hook",game_state)
             #Send data to client 
             if game_state.exists(["sync_with_client"]):
                 with game_state._lock:

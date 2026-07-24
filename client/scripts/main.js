@@ -21,14 +21,14 @@ document.addEventListener("keydown", e => {
     }
     keys[e.code] = true;    
     e.preventDefault(); 
-    wsRegistry.dispatch("main:keydown",gameState);
+    wsRegistry.dispatch("core:keydown",gameState);
 });
 document.addEventListener("keyup", e => { 
     if (!isGameFocused()) {
         return;
     }
     keys[e.code] = false; 
-    wsRegistry.dispatch("main:keyup",gameState);
+    wsRegistry.dispatch("core:keyup",gameState);
 });
 
 // Pointer lock
@@ -93,7 +93,7 @@ function loop() {
     last = now;
     tickDelta+=dt;
     while (tickDelta>=tickrate){
-        wsRegistry.dispatch("main:tick",gameState);
+        wsRegistry.dispatch("core:tick",gameState);
         socket.send(encode({"op":"sync_with_server","params":gameState.get(["client_send_buffer"])}));
         //updateCamera(tickrate);
         tickDelta-=tickrate;

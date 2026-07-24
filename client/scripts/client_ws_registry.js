@@ -5,7 +5,7 @@
  */
 class Registry {
     constructor() {
-        this._handlers = { "main:tick": {} ,"main:keydown":{}, "main:keyup":{}};
+        this._handlers = { "core:tick": {} ,"core:keydown":{}, "core:keyup":{}};
         this.UFID=0;
     }
 
@@ -16,13 +16,15 @@ class Registry {
      * @param {Function} func - Function object of handler
      * @param {string} [name] - Name of handler function
      */
-    register_handler(op, func, name = null) {
+    register_handler(op, func = null, name = null) {
         let handlerName = name;
         // Create new event hook if not created
         if (!Object.hasOwn(this._handlers,op)){
             this._handlers[op] = {};
             console.log(`  Frontend Event Hook ${op} created.`);
         }
+        //Exit early if no function is provided(only registers event hook)
+        if (func === null) return;
         // If name is not provided, replace with _lambda+unique function ID to prevent collision
         if (handlerName === null) {
             handlerName = `_lambda_${this.UFID}`;
@@ -73,7 +75,7 @@ class Registry {
                 }
             }
         }else{
-            console.warn(`Attempted to access unknown frontend handler ${op}.`);
+            console.warn(`Attempted to access unknown frontend handler/hook ${op}.`);
         }
     }
 }

@@ -50,19 +50,13 @@ function initClient() {
 }
 
 function onModsReady() {
+    wsRegistry.register_handler("core:mods_ready");
+    wsRegistry.dispatch("core:mods_ready", gameState);
     // -- Hand off WebSocket to gamestate ------------------------------
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
-        // wsRegistry.dispatch(msg["op"],msg["params"],socket,encode);
-        // # Route message to game state
-        // with game_state._lock:
-        //     clientData=game_state.get(["client_receive_buffer",data["op"]],False)
-        //     if not game_state.exists(["client_receive_buffer",data["op"]]):
-        //         game_state.set(["client_receive_buffer",data["op"]],[])
-        //         clientData=game_state.get(["client_receive_buffer",data["op"]],False)
-        //     clientData.append(data["params"])
         //Route message to game state
-        if (msg["op"]==="main:sync_with_client"){
+        if (msg["op"]==="core:sync_with_client"){
             gameState.set(["server_receive_buffer"],msg["params"]);
         }
         else{

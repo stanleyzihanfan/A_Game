@@ -6,7 +6,7 @@ class Registry:
     def __init__(self):
         self._handlers = {"tick":{}}
 
-    def register_handler(self, op: str, func, name:str = None):
+    def register_handler(self, op: str, func=None, name:str = None):
         """
         Register a handler
 
@@ -19,6 +19,9 @@ class Registry:
         if not op in self._handlers:
             self._handlers[op]={}
             print(f"  Event Hook {op} created.")
+        #Exit early if no function is provided(only registers event hook)
+        if func is None:
+            return
         #If name is not provided, replace with _lambda+unique function ID to prevent collision
         if handlerName==None:
             handlerName=f"_lambda_{id(func)}"
@@ -62,5 +65,5 @@ class Registry:
                     print(f"  {type(e).__name__}: {e}")
                     e.add_note("Handled")
                     raise
-        else:
-            print(f"\x1b[31mFrontend attempted to access unknown handler {op}\033[0m")
+        # elif handlers!={}:
+        #     print(f"\x1b[31mFrontend attempted to access unknown handler/hook {op}\033[0m")

@@ -147,7 +147,7 @@ function loadScriptSequential(srcList) {
 // -- Globals used by later scripts ----------------------------------------------
 // These stay as top-level let/const so later classic <script> tags can see
 // them as bare identifiers, same pattern as before.
-let socket;                       // assigned once the URL is resolved, below
+let socket;                       // assigned once the URL is resolved
 const wsRegistry = new Registry();
 const gameState = new GameState();
 let playerName="";

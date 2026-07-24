@@ -55,4 +55,4 @@ def register(registry:Registry):
     registry.register_handler("client_communication:process_client_hook", log, "client_communication:log")
     registry.register_handler("client_communication:process_client_hook", warn, "client_communication:warn")
     registry.register_handler("client_communication:process_client_hook", error, "client_communication:error")
-    registry.register_handler("main:tick_hook", process_client_hook_handler, "client_communication:process_client_hook_handler")
+    registry.register_handler("core:tick_hook", process_client_hook_handler, "client_communication:process_client_hook_handler")
