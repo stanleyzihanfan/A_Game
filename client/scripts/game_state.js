@@ -30,7 +30,6 @@ class GameState {
 
     /**
      * Gets value for key
-     * WARNING: When using deepcopy=false, make sure it is used with thread lock
      * 
      * @param {Array} key - Key to get value for
      * @param {boolean} [deepcopy=true] - Whether to return a deep copy of value

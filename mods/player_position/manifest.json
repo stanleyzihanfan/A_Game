@@ -1,0 +1,10 @@
+{
+    "modID": "player_position",
+    "name": "Player Position Handler",
+    "version": "0.1.0",
+    "description": "Handles player position calculation and syncing",
+    "author": "Eyeseminal",
+    "backend_py": "main.py",
+    "client_js": "client.js",
+    "dependencies": []
+}

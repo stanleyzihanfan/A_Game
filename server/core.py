@@ -90,7 +90,6 @@ def server(ws):
         with active_connections_lock:
             active_connections[data["playerName"]]=ws
         print(f"Client {playerName} connected.")
-        #Register 
         with game_state._lock:
             #Generate new player entry if it doesn't exist
             if not game_state.exists(["players",playerName]):
@@ -108,6 +107,7 @@ def server(ws):
                     ws.close(1000,"Incorrect Password")
                     return
                 game_state.set(["players",playerName,"online"],True)
+        registry.dispatch("core:on_player_connect",game_state)
         #Stream client all mod JS files
         _send_mod_scripts(ws)
         while True:
@@ -126,6 +126,7 @@ def server(ws):
                         clientData=game_state.get(["client_receive_buffer",data["op"]],False)
                     clientData.append(data["params"])
     finally:
+        registry.dispatch("core:on_player_disconnect",game_state)
         #Remove from connected clients on client disconnect
         #If playerName is none, the websocket was closed before it was added to active_connections
         if playerName is not None:
