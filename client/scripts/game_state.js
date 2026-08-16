@@ -35,7 +35,7 @@ class GameState {
      * @param {boolean} [deepcopy=true] - Whether to return a deep copy of value
      * @returns {*} Returns value if key exists, else returns null
      */
-    get(key, deepcopy = true) {
+    get(key) {
         let last = this._state;
         for (const k of key) {
             if (typeof last !== 'object' || last === null || !(k in last)) {
@@ -43,11 +43,7 @@ class GameState {
             }
             last = last[k];
         }
-        if (deepcopy) {
-            return JSON.parse(JSON.stringify(last));
-        } else {
-            return last;
-        }
+        return JSON.parse(JSON.stringify(last));
     }
 
     /**

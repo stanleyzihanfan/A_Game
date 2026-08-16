@@ -2,6 +2,8 @@ function update_camera_rotation(gameState){
     camera.rotation.order = "YXZ";
     camera.rotation.y = gameState.get(["playerData","yaw"]); 
     camera.rotation.x = gameState.get(["playerData","pitch"]);
+    console.log(`camera yaw: ${camera.rotation.y}`);
+    console.log(`camera pitch: ${camera.rotation.x}`);
 }
 
 wsRegistry.register_handler("core:update_camera",update_camera_rotation);

@@ -40,21 +40,27 @@ renderer.domElement.addEventListener("click", () => {
 //Set camera look direction
 document.addEventListener("mousemove", e => {
     if (document.pointerLockElement !== renderer.domElement) return;
-    gameState.get(["playerData","yaw"],false) -= e.movementX * SENSITIVITY;
-    gameState.get(["playerData","pitch"],false) -= e.movementY * SENSITIVITY;
-    gameState.get(["playerData","pitch"],false) = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, gameState.get(["playerData","pitch"])));
+    let yaw=gameState.get(["playerData","yaw"]);
+    let pitch=gameState.get(["playerData","pitch"]);
+    yaw -= e.movementX * SENSITIVITY;
+    pitch -= e.movementY * SENSITIVITY;
+    pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
     // pitch -= e.movementY * SENSITIVITY;
     // pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+    gameState.set(["playerData","yaw"],yaw);
+    gameState.set(["playerData","pitch"],pitch);
+    console.log(`Yaw ${yaw}`);
+    console.log(`Pitch ${pitch}`);
 });
 
 //Scroll wheel to control speed
 document.addEventListener("wheel", e => {
-    const Speed=gameState.get(["playerData","speed"],false);
-    gameState-=e.deltaY*SCROLL_DIALATION,0;
-    gameState.set(["playerData","speed"],Math.max(Speed,0));
+    let speed=gameState.get(["playerData","speed"]);
+    speed-=e.deltaY*SCROLL_DIALATION,0;
+    gameState.set(["playerData","speed"],Math.max(speed,0));
     // Speed-=e.deltaY*SCROLL_DIALATION,0;
     // Speed=Math.max(Speed,0);
-    document.getElementById("debug").textContent="Speed: "+Speed
+    document.getElementById("debug").textContent="Speed: "+speed
 })
 
 // // Build a direction vector from yaw/pitch (Minecraft spectator style)
@@ -110,6 +116,6 @@ function loop() {
         tickDelta-=tickrate;
     }
     wsRegistry.dispatch("core:update_camera",gameState);
-    updateCamera(dt);
+    // updateCamera(dt);
     renderer.render(scene, camera);
 }
