@@ -53,8 +53,7 @@ def load_mods(registry):
         if backend_py:
             py_path = os.path.join(mod_path, backend_py)
             if not os.path.isfile(py_path):
-                print(f"\x1b[33m  main.py '{backend_py}' not found for mod '{modID}', skipping\033[0m")
-                continue
+                print(f"\x1b[33m  main.py '{backend_py}' not found for mod '{modID}'\033[0m")
             # Dynamically import the mod's main.py without polluting sys.modules
             # with a generic name — use modID as the module name
             spec = importlib.util.spec_from_file_location(f"mod_{modID}", py_path)
@@ -63,8 +62,7 @@ def load_mods(registry):
 
             # Every backend mod must expose a register(registry) function
             if not hasattr(module, "register"):
-                print(f"\x1b[33m  Mod '{modID}' has no register() function, skipping\033[0m")
-                continue
+                print(f"\x1b[33m  Mod '{modID}' has no register() function\033[0m")
             module.register(registry)
             print(f"  Backend registered: {backend_py}")
         else:
