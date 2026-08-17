@@ -63,7 +63,8 @@ def load_mods(registry):
             # Every backend mod must expose a register(registry) function
             if not hasattr(module, "register"):
                 print(f"\x1b[33m  Mod '{modID}' has no register() function\033[0m")
-            module.register(registry)
+            else:
+                module.register(registry)
             print(f"  Backend registered: {backend_py}")
         else:
             print(f"\x1b[33m  main.py '{backend_py}' not registered in registry for mod '{modID}', skipping\033[0m")

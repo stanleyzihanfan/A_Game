@@ -49,8 +49,6 @@ document.addEventListener("mousemove", e => {
     // pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
     gameState.set(["playerData","yaw"],yaw);
     gameState.set(["playerData","pitch"],pitch);
-    console.log(`Yaw ${yaw}`);
-    console.log(`Pitch ${pitch}`);
 });
 
 //Scroll wheel to control speed
