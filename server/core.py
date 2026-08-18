@@ -71,7 +71,7 @@ def server(ws):
     try:
         # Send request to client to initialize
         ws.send(encode({"op": "init"}))
-        #Wait for clien to respond with player data
+        #Wait for client to respond with player data
         data=ws.receive()
         if data is None:
             return
@@ -118,13 +118,12 @@ def server(ws):
             # Route message to game state
             with game_state._lock:
                 if data["op"]=="sync_with_server":
-                    clientData=game_state.set(["client_receive_buffer"],data["params"])
+                    game_state.set(["client_receive_buffer"],[playerName,data["params"]])
                 else:
-                    clientData=game_state.get(["client_receive_buffer",data["op"]],False)
+                    game_state.get(["client_receive_buffer",data["op"]],False)
                     if not game_state.exists(["client_receive_buffer",data["op"]]):
                         game_state.set(["client_receive_buffer",data["op"]],[])
-                        clientData=game_state.get(["client_receive_buffer",data["op"]],False)
-                    clientData.append(data["params"])
+                        game_state.get(["client_receive_buffer",data["op"]],False)
     finally:
         registry.dispatch("core:on_player_disconnect",game_state)
         #Remove from connected clients on client disconnect
