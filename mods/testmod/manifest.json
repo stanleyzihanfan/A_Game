@@ -4,7 +4,7 @@
     "version": "0.1.0",
     "description": "Testing mod",
     "author": "Eyeseminal",
-    "backend_py": "main.py",
-    "client_js": "client.js",
+    "backend_py": "",
+    "client_js": "",
     "dependencies": []
 }

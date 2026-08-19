@@ -1,10 +1,8 @@
 // -- First-person camera controls ---------------------------------------------
 //Configs
-// let yaw = 0, pitch = 0;
-// let Speed = 8; // units per second
 gameState.set(["playerData","yaw"],0,true);
 gameState.set(["playerData","pitch"],0,true);
-gameState.set(["playerData","speed"],8,true);
+gameState.set(["playerData","speed"],8,true); //units per second
 const SCROLL_DIALATION=0.005;
 const SENSITIVITY = 0.002; // radians per pixel
 const whitelist=[document.body,renderer.domElement];
@@ -45,8 +43,6 @@ document.addEventListener("mousemove", e => {
     yaw -= e.movementX * SENSITIVITY;
     pitch -= e.movementY * SENSITIVITY;
     pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
-    // pitch -= e.movementY * SENSITIVITY;
-    // pitch    = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
     gameState.set(["playerData","yaw"],yaw);
     gameState.set(["playerData","pitch"],pitch);
 });
@@ -55,37 +51,10 @@ document.addEventListener("mousemove", e => {
 document.addEventListener("wheel", e => {
     let speed=gameState.get(["playerData","speed"]);
     speed-=e.deltaY*SCROLL_DIALATION,0;
-    gameState.set(["playerData","speed"],Math.max(speed,0));
-    // Speed-=e.deltaY*SCROLL_DIALATION,0;
-    // Speed=Math.max(Speed,0);
+    speed=Math.max(speed,0);
+    gameState.set(["playerData","speed"],speed);
     document.getElementById("debug").textContent="Speed: "+speed
 })
-
-// // Build a direction vector from yaw/pitch (Minecraft spectator style)
-// const forward = new THREE.Vector3();
-// const right = new THREE.Vector3();
-// const up = new THREE.Vector3(0, 1, 0);
-
-
-function updateCamera(dt) {
-    // Rotation: yaw around world Y, pitch around local X
-    camera.rotation.order = "YXZ";
-    // camera.rotation.y = gameState.get(["playerData","yaw"]); 
-    // camera.rotation.x = gameState.get(["playerData","pitch"]);
-
-    // Movement directions derived from yaw only (no tilt on strafe/forward)
-    // forward.set(Math.sin(yaw), 0, Math.cos(yaw)).negate();
-    // right.crossVectors(forward, up).normalize();
-
-    // const dist = Speed * dt;
-    // const dist = gameState.get(["playerData","speed"])*dt;
-    // if (keys["KeyW"]) camera.position.addScaledVector(forward, dist);
-    // if (keys["KeyS"]) camera.position.addScaledVector(forward, -dist);
-    // if (keys["KeyA"]) camera.position.addScaledVector(right, -dist);
-    // if (keys["KeyD"]) camera.position.addScaledVector(right, dist);
-    // if (keys["Space"]) camera.position.y += dist;
-    // if (keys["ShiftLeft"] || keys["ShiftRight"]) camera.position.y -= dist;
-}
 
 // -- Resize handler ------------------------------------------------------------
 window.addEventListener("resize", () => {
@@ -98,6 +67,7 @@ window.addEventListener("resize", () => {
 let last = performance.now();
 let tickDelta=0
 let tickrate=1/20;
+gameState.set(["client_send_buffer"],[],true);
 function loop() {
     requestAnimationFrame(loop);
     
@@ -105,15 +75,13 @@ function loop() {
     const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
     last = now;
     tickDelta+=dt;
-    //TODO:Edit to use server
     while (tickDelta>=tickrate){
         gameState.set(["deltaTime"],tickrate,true);
         wsRegistry.dispatch("core:tick",gameState);
         socket.send(encode({"op":"sync_with_server","params":gameState.get(["client_send_buffer"])}));
-        //updateCamera(tickrate);
+        gameState.set(["client_send_buffer"],[],true);
         tickDelta-=tickrate;
     }
     wsRegistry.dispatch("core:update_camera",gameState);
-    // updateCamera(dt);
     renderer.render(scene, camera);
 }
