@@ -81,6 +81,7 @@ function onSocketOpen() {
 function onSocketMessage(e) {
     const msg = msgpack.decode(new Uint8Array(e.data));
     if (msg["op"] === "init") {
+        console.log("Initializing client...");
         initClient();
         return;
     }

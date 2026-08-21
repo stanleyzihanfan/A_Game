@@ -22,11 +22,15 @@ function update_player_position(gameState) {
 	// if (gameState.get(["keys","ShiftLeft"]) || gameState.get(["keys","ShiftRight"])) camera.position.y -= dist;
     sendbuffer = gameState.get(["client_send_buffer"]);
     let moveState = {};
-
-    sendbuffer.push({
-        yaw: gameState.get(["playerData", "yaw"]),
-        pitch: gameState.get(["playerData", "pitch"]),
-    });
+	moveState.yaw=gameState.get(["playerData","yaw"]);
+	moveState.forward=gameState.get(["keys","KeyW"]);
+	moveState.back=gameState.get(["keys","KeyS"]);
+	moveState.left=gameState.get(["keys","KeyA"]);
+	moveState.right=gameState.get(["keys","KeyD"]);
+	moveState.up=gameState.get(["keys","Space"]);
+	moveState.down=gameState.get(["keys","ShiftLeft"]);
+    sendbuffer.push(moveState);
+	gameState.set(["client_send_buffer"],sendbuffer);
 }
 
 wsRegistry.register_handler("core:tick",update_player_position);

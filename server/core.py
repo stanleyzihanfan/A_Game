@@ -108,6 +108,8 @@ def server(ws):
                     return
                 game_state.set(["players",playerName,"online"],True)
         registry.dispatch("core:on_player_connect",game_state)
+        #Initialize client_receive_buffer in gamestate
+        game_state.set(["client_receive_buffer"],[],True)
         #Stream client all mod JS files
         _send_mod_scripts(ws)
         while True:
@@ -118,7 +120,9 @@ def server(ws):
             # Route message to game state
             with game_state._lock:
                 game_state.get(["client_receive_buffer"],False).append([playerName,data["params"]])
-                game_state.set(["client_receive_buffer"],[playerName,data["params"]])
+                # print(game_state.get(["client_receive_buffer"]))
+                #Temporary debug
+                game_state.set(["client_receive_buffer"],[])
     finally:
         registry.dispatch("core:on_player_disconnect",game_state)
         #Remove from connected clients on client disconnect

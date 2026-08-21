@@ -41,7 +41,6 @@ function initLogSocket() {
         }
     };
     logSocket.onclose = () => { logSocketReady = false; };
-    //logSocket.onerror = () => { /* swallow — logging must never break the client */ };
 }
 
 function sendClientLog(level, timestamp, args) {
@@ -70,14 +69,11 @@ function normalizeServerURL(input) {
     let url = input.trim().replace(/\/+$/, "");        // strip trailing slash(es)
     if (!url) throw new Error("URL cannot be empty");
     url = url.replace(/^https/, "wss").replace(/^http/, "ws");
+    console.log(url+"/server");
     return url + "/server";
 }
 
-// -- Server URL entry (DOM-based, replaces window.prompt) ---------------------
-// window.prompt is blocked or silently no-ops in many embedded webviews
-// (VSCode preview, Electron, etc.), so this uses the overlay markup in
-// frontend.html instead. Works identically everywhere. Doubles as the seed
-// for a future server-select screen.
+// -- Connection Screen ---------------------
 function getServerURL() {
     return new Promise((resolve) => {
         const overlay = document.getElementById("server-connect-overlay");
@@ -92,6 +88,7 @@ function getServerURL() {
         //input.focus();
 
         function submit() {
+            console.log("submit");
             const raw = input.value.trim();
             const playerName = nameInput.value.trim();
             const password = passwordInput.value; // not trimmed — spaces may be intentional
