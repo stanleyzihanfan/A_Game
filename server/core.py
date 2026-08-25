@@ -119,10 +119,7 @@ def server(ws):
             data = decode(data)
             # Route message to game state
             with game_state._lock:
-                game_state.get(["client_receive_buffer"],False).append([playerName,data["params"]])
-                # print(game_state.get(["client_receive_buffer"]))
-                #Temporary debug
-                game_state.set(["client_receive_buffer"],[])
+                game_state.get(["client_receive_buffer"],False).append({"playerName":playerName,"data":data["params"]})
     finally:
         registry.dispatch("core:on_player_disconnect",game_state)
         #Remove from connected clients on client disconnect
@@ -160,13 +157,17 @@ def start_tick(interval):
         try:
             #Dispatch tick handler
             registry.dispatch("core:tick_hook",game_state)
-            #TODO:Fix by have it iterate and send to proper client socket connection var instead of global socket variable
             #Send data to client
+            #TODO:Test server to client comms
             if game_state.exists(["sync_with_client"]):
                 with game_state._lock:
-                    toSync=game_state.get(["sync_with_client"],False)
-                    wSocket.send(encode({"sync_with_client":toSync}))
-                    game_state.set(["sync_with_client"],{})
+                    toSync=game_state.get(["sync_with_client"])
+                    for i in toSync:
+                        with active_connections_lock:
+                            if active_connections.get(i["playerName"]):
+                                active_connections[i["playerName"]].send(encode({"sync_with_client":toSync}))
+                    game_state.set(["sync_with_client"],[])
+            game_state.set(["client_receive_buffer"],[])
         except Exception as e:
             if "Handled" not in e.__notes__:
                 traceback.print_exc()
