@@ -90,6 +90,7 @@ def server(ws):
         with active_connections_lock:
             active_connections[data["playerName"]]=ws
         print(f"Client {playerName} connected.")
+        #TODO:Move this section to mod
         with game_state._lock:
             #Generate new player entry if it doesn't exist
             if not game_state.exists(["players",playerName]):
@@ -165,8 +166,8 @@ def start_tick(interval):
                     for i in toSync:
                         with active_connections_lock:
                             if active_connections.get(i["playerName"]):
-                                active_connections[i["playerName"]].send(encode({"sync_with_client":toSync}))
-                    game_state.set(["sync_with_client"],[])
+                                active_connections[i["playerName"]].send(encode({"sync_with_client":i["data"]}))
+                    game_state.set(["sync_with_client"],{})
             game_state.set(["client_receive_buffer"],[])
         except Exception as e:
             if "Handled" not in e.__notes__:
