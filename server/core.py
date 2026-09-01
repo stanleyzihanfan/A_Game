@@ -90,7 +90,7 @@ def server(ws):
         with active_connections_lock:
             active_connections[data["playerName"]]=ws
         print(f"Client {playerName} connected.")
-        #TODO:Move this section to mod
+        #TODO: Move connection logic to mod
         with game_state._lock:
             #Generate new player entry if it doesn't exist
             if not game_state.exists(["players",playerName]):
