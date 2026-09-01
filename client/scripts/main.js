@@ -79,7 +79,7 @@ function loop() {
         gameState.set(["deltaTime"],tickrate,true);
         wsRegistry.dispatch("core:tick",gameState);
         socket.send(encode({"op":"sync_with_server","params":gameState.get(["client_send_buffer"])}));
-        gameState.set(["client_send_buffer"],[],true);
+        gameState.set(["client_send_buffer"],{},true);
         tickDelta-=tickrate;
     }
     wsRegistry.dispatch("core:update_camera",gameState);

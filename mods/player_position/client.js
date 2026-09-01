@@ -29,7 +29,7 @@ function update_player_position(gameState) {
 	moveState.right=gameState.get(["keys","KeyD"]);
 	moveState.up=gameState.get(["keys","Space"]);
 	moveState.down=gameState.get(["keys","ShiftLeft"]);
-    sendbuffer.push(moveState);
+    sendbuffer["player_position:movement_handler"]=moveState;
 	gameState.set(["client_send_buffer"],sendbuffer);
 }
 
