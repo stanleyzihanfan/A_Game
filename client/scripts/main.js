@@ -81,6 +81,7 @@ function loop() {
         socket.send(encode({"op":"sync_with_server","params":gameState.get(["client_send_buffer"])}));
         gameState.set(["client_send_buffer"],{},true);
         tickDelta-=tickrate;
+        gameState.set(["server_receive_buffer"],[])
     }
     wsRegistry.dispatch("core:update_camera",gameState);
     renderer.render(scene, camera);

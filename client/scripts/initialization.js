@@ -57,7 +57,12 @@ function onModsReady() {
         const msg = msgpack.decode(new Uint8Array(e.data));
         //Route message to game state
         if (msg["op"]==="core:sync_with_client"){
+            if (gameState.exists(["server_receive_buffer"] && gameState.get(["server_receive_buffer"])!=[])){
+                let tmp=gameState.get(["server_receive_buffer"])!=[];
+                
+            }
             gameState.set(["server_receive_buffer"],msg["params"]);
+            if ()
         }
         else{
             serverData=gameState.get(["server_receive_buffer",msg["op"]],false);

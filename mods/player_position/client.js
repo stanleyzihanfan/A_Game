@@ -6,6 +6,12 @@ function update_camera_rotation(gameState){
 
 wsRegistry.register_handler("core:update_camera",update_camera_rotation);
 
+function test_client_receive(gameState) {
+	if (gameState.exists(["server_receive_buffer"]) && gameState.get(["server_receive_buffer"]!=)){
+
+	}
+}
+
 function update_player_position(gameState) {
 	// const forward = new THREE.Vector3();
 	// const right = new THREE.Vector3();
