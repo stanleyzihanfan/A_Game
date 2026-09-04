@@ -57,12 +57,13 @@ function onModsReady() {
         const msg = msgpack.decode(new Uint8Array(e.data));
         //Route message to game state
         if (msg["op"]==="core:sync_with_client"){
-            if (gameState.exists(["server_receive_buffer"] && gameState.get(["server_receive_buffer"])!=[])){
-                let tmp=gameState.get(["server_receive_buffer"])!=[];
-                
+            if (gameState.exists(["server_receive_buffer"])){
+                let tmp=gameState.get(["server_receive_buffer"]);
+                tmp.push(msg["params"]);
+                gameState.set(["server_receive_buffer"],tmp);
+            }else{
+                gameState.set(["server_receive_buffer"],[],true);
             }
-            gameState.set(["server_receive_buffer"],msg["params"]);
-            if ()
         }
         else{
             serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
@@ -70,7 +71,7 @@ function onModsReady() {
                 gameState.set(["server_receive_buffer",msg["op"]],[]);
                 serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
             }
-            serverData.append(msg["params"]);
+            serverData.push(msg["params"]);
         }
     }
     console.log(`Client loading complete`);

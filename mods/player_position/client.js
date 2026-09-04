@@ -4,13 +4,14 @@ function update_camera_rotation(gameState){
     camera.rotation.x = gameState.get(["playerData","pitch"]);
 }
 
-wsRegistry.register_handler("core:update_camera",update_camera_rotation);
+wsRegistry.register_handler("core:update_camera",update_camera_rotation,"player_position:updateCameraRotation");
 
 function test_client_receive(gameState) {
-	if (gameState.exists(["server_receive_buffer"]) && gameState.get(["server_receive_buffer"]!=)){
-
+	if (gameState.exists(["server_receive_buffer"]) && gameState.get(["server_receive_buffer"])?.length===0){
+		console.log(gameState.get(["server_receive_buffer"]));
 	}
 }
+wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
 
 function update_player_position(gameState) {
 	// const forward = new THREE.Vector3();
@@ -39,4 +40,4 @@ function update_player_position(gameState) {
 	gameState.set(["client_send_buffer"],sendbuffer);
 }
 
-wsRegistry.register_handler("core:tick",update_player_position);
+wsRegistry.register_handler("core:tick",update_player_position,"player_position:updatePlayerPosition");
