@@ -165,9 +165,11 @@ def start_tick(interval):
                     toSync=game_state.get(["sync_with_client"])
                     for i in toSync:
                         with active_connections_lock:
-                            if active_connections.get(i["playerName"]):
-                                active_connections[i["playerName"]].send(encode({"sync_with_client":i["data"]}))
-                    game_state.set(["sync_with_client"],{})
+                            for connection in active_connections.values():
+                                connection.send(encode({"sync_with_client":i}))
+                    game_state.set(["sync_with_client"],[])
+            else:
+                game_state.set(["sync_with_client"],[])
             game_state.set(["client_receive_buffer"],[])
         except Exception as e:
             if "Handled" not in e.__notes__:

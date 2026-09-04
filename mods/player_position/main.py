@@ -3,11 +3,12 @@ def testclient_server(gamestate,registry):
         print(gamestate.get(["client_receive_buffer"]))
 
 def testserver_client(gamestate,registry):
-    if not gamestate.exists(["sync_with_client"]):
+    if not (gamestate.exists(["sync_with_client"]) or isinstance(gamestate.get(["sync_with_client"]),list)):
         return
     with gamestate._lock:
         cursync=gamestate.get(["sync_with_client"])
-        cursync["player_position:testsend"]="Sent from Server"
+        cursync.append("Sent from Server")
+        # cursync["player_position:testsend"]="Sent from Server"
         gamestate.set(["sync_with_client"],cursync)
 
 def register(registry):

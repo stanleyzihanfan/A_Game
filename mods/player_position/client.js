@@ -7,7 +7,7 @@ function update_camera_rotation(gameState){
 wsRegistry.register_handler("core:update_camera",update_camera_rotation,"player_position:updateCameraRotation");
 
 function test_client_receive(gameState) {
-	if (gameState.exists(["server_receive_buffer"]) && gameState.get(["server_receive_buffer"])?.length===0){
+	if (gameState.exists(["server_receive_buffer"]) && gameState.get(["server_receive_buffer"])?.length!==0){
 		console.log(gameState.get(["server_receive_buffer"]));
 	}
 }
