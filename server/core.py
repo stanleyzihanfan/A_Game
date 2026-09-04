@@ -160,16 +160,16 @@ def start_tick(interval):
             registry.dispatch("core:tick_hook",game_state)
             #Send data to client
             #TODO:Test server to client comms
-            if game_state.exists(["sync_with_client"]):
+            if game_state.exists(["core:sync_with_client"]):
                 with game_state._lock:
-                    toSync=game_state.get(["sync_with_client"])
+                    toSync=game_state.get(["core:sync_with_client"])
                     for i in toSync:
                         with active_connections_lock:
                             for connection in active_connections.values():
-                                connection.send(encode({"sync_with_client":i}))
-                    game_state.set(["sync_with_client"],[])
+                                connection.send(encode({"op":"core:sync_with_client","params":i}))
+                    game_state.set(["core:sync_with_client"],[])
             else:
-                game_state.set(["sync_with_client"],[])
+                game_state.set(["core:sync_with_client"],[])
             game_state.set(["client_receive_buffer"],[])
         except Exception as e:
             if "Handled" not in e.__notes__:
