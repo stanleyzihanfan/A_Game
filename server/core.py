@@ -109,8 +109,8 @@ def server(ws):
                     return
                 game_state.set(["players",playerName,"online"],True)
         registry.dispatch("core:on_player_connect",game_state)
-        #Initialize client_receive_buffer in gamestate
-        game_state.set(["client_receive_buffer"],[],True)
+        #Initialize core:client_receive_buffer in gamestate
+        game_state.set(["core:client_receive_buffer"],[],True)
         #Stream client all mod JS files
         _send_mod_scripts(ws)
         while True:
@@ -120,7 +120,7 @@ def server(ws):
             data = decode(data)
             # Route message to game state
             with game_state._lock:
-                game_state.get(["client_receive_buffer"],False).append({"playerName":playerName,"data":data["params"]})
+                game_state.get(["core:client_receive_buffer"],False).append({"playerName":playerName,"data":data["params"]})
     finally:
         registry.dispatch("core:on_player_disconnect",game_state)
         #Remove from connected clients on client disconnect
@@ -170,7 +170,7 @@ def start_tick(interval):
                     game_state.set(["core:sync_with_client"],[])
             else:
                 game_state.set(["core:sync_with_client"],[])
-            game_state.set(["client_receive_buffer"],[])
+            game_state.set(["core:client_receive_buffer"],[])
         except Exception as e:
             if "Handled" not in e.__notes__:
                 traceback.print_exc()
