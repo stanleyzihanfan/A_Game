@@ -11,7 +11,7 @@ function test_client_receive(gameState) {
 		console.log(gameState.get(["server_receive_buffer"]));
 	}
 }
-// wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
+wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
 
 function update_player_move_data(gameState) {
     sendbuffer = gameState.get(["client_send_buffer"]);
@@ -31,5 +31,9 @@ function update_player_move_data(gameState) {
 wsRegistry.register_handler("core:tick",update_player_move_data,"player_position:updatePlayerMoveData");
 
 function update_player_position(gamestate){
-	
+	if (gameState.exists(["server_receive_buffer"])){
+		for (const data of gamestate.get(["server_receive_buffer"])){
+			
+		}
+	}
 }

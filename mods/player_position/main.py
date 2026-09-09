@@ -54,10 +54,11 @@ def sendPlayerPosData(gamestate,registry):
     curdata=gamestate.get(["core:per_client_sync","data"])
     curdata["player_position:pos"]=gamestate.get(["players",player,"position"])
     gamestate.set(["core:per_client_sync","data"],curdata)
+    print(gamestate.get(["core:per_client_sync","data"]))
 
 def register(registry):
     # registry.register_handler("core:tick_hook",testclient_server,"player_position:client-server-test")
     # registry.register_handler("core:tick_hook",testserver_client,"player_position:server-client-test")
     registry.register_handler("core:on_player_connect",onConnect,"player_position:initialize-player-state")
     registry.register_handler("core:tick_hook",updatePlayerPosition,"player_position:update-player-pos")
-    registry.register_handler("core:per_client_sync",sendPlayerPosData,"player_position:send-player-pos-data")
+    registry.register_handler("core:calculate_client_display",sendPlayerPosData,"player_position:send-player-pos-data")
