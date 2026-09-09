@@ -1,3 +1,4 @@
+import traceback
 from server.game_state import GameState
 # Central WebSocket op handler registry
 # Replaces the wsDispatch dict in the original backend.py
@@ -62,7 +63,7 @@ class Registry:
                     func(gameState,self)
                 except Exception as e:
                     print(f"\x1b[31mHandler '{handlerName}' under '{op}' failed:\033[0m")
-                    print(f"  {type(e).__name__}: {e}")
+                    traceback.print_exc()
                     e.add_note("Handled")
                     raise
         # elif handlers!={}:

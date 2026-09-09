@@ -11,22 +11,9 @@ function test_client_receive(gameState) {
 		console.log(gameState.get(["server_receive_buffer"]));
 	}
 }
-wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
+// wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
 
-function update_player_position(gameState) {
-	// const forward = new THREE.Vector3();
-	// const right = new THREE.Vector3();
-	// const up = new THREE.Vector3(0, 1, 0);
-	// const dt=gameState.get(["deltaTime"]);
-	// const dist = gameState.get(["playerData","speed"])*dt;
-	// forward.set(Math.sin(gameState.get(["playerData","yaw"])), 0, Math.cos(gameState.get(["playerData","yaw"]))).negate();
-	// right.crossVectors(forward, up).normalize();
-	// if (gameState.get(["keys","KeyW"])) camera.position.addScaledVector(forward, dist);
-	// if (gameState.get(["keys","KeyS"])) camera.position.addScaledVector(forward, -dist);
-	// if (gameState.get(["keys","KeyA"])) camera.position.addScaledVector(right, -dist);
-	// if (gameState.get(["keys","KeyD"])) camera.position.addScaledVector(right, dist);
-	// if (gameState.get(["keys","Space"])) camera.position.y += dist;
-	// if (gameState.get(["keys","ShiftLeft"]) || gameState.get(["keys","ShiftRight"])) camera.position.y -= dist;
+function update_player_move_data(gameState) {
     sendbuffer = gameState.get(["client_send_buffer"]);
     let moveState = {};
 	moveState.yaw=gameState.get(["playerData","yaw"]);
@@ -36,8 +23,13 @@ function update_player_position(gameState) {
 	moveState.right=gameState.get(["keys","KeyD"]);
 	moveState.up=gameState.get(["keys","Space"]);
 	moveState.down=gameState.get(["keys","ShiftLeft"]);
+	moveState.speed=gameState.get(["playerData","speed"]);
     sendbuffer["player_position:movement_handler"]=moveState;
 	gameState.set(["client_send_buffer"],sendbuffer);
 }
 
-wsRegistry.register_handler("core:tick",update_player_position,"player_position:updatePlayerPosition");
+wsRegistry.register_handler("core:tick",update_player_move_data,"player_position:updatePlayerMoveData");
+
+function update_player_position(gamestate){
+	
+}

@@ -108,7 +108,9 @@ def server(ws):
                     ws.close(1000,"Incorrect Password")
                     return
                 game_state.set(["players",playerName,"online"],True)
-        registry.dispatch("core:on_player_connect",game_state)
+            game_state.set(["players","newPlayerName"],playerName)
+            registry.dispatch("core:on_player_connect",game_state)
+            game_state.set(["players","newPlayerName"],"")
         #Initialize core:client_receive_buffer in gamestate
         game_state.set(["core:client_receive_buffer"],[],True)
         #Stream client all mod JS files
@@ -156,6 +158,8 @@ def start_tick(interval):
     print("Started game...")
     lastTime=datetime.now()
     deltaTick=0
+    game_state.set(["core:global_broadcast"],[])
+    game_state.set(["core:client_receive_buffer"],[])
     while True:
         delta=datetime.now()-lastTime
         #Cap delta to prevent spiral
@@ -166,24 +170,23 @@ def start_tick(interval):
             try:
                 game_state.set(["core:tickRate"],interval)
                 #Dispatch tick handler
-                registry.dispatch("core:tick_hook",game_state)
+                with game_state._lock:
+                    registry.dispatch("core:tick_hook",game_state)
                 #Send global broadcast data to client
-                if game_state.exists(["core:sync_with_client"]):
-                    with game_state._lock:
-                        toSync=game_state.get(["core:sync_with_client"])
-                        for i in toSync:
-                            with active_connections_lock:
-                                for connection in active_connections.values():
-                                    connection.send(encode({"op":"core:sync_with_client","params":i}))
-                        game_state.set(["core:sync_with_client"],[])
-                else:
-                    game_state.set(["core:sync_with_client"],[])
+                with game_state._lock:
+                    toSync=game_state.get(["core:global_broadcast"])
+                    for i in toSync:
+                        with active_connections_lock:
+                            for connection in active_connections.values():
+                                connection.send(encode({"op":"core:sync_with_client","params":i}))
+                    game_state.set(["core:global_broadcast"],[])
                 #Send client-specific data to each client
                 with active_connections_lock:
-                    for player,connection in active_connections.items():
-                        game_state.set(["core:per_client_sync"],{"player":player,"data":{}})
-                        registry.dispatch("core:calculate_client_display",game_state)
-                        connection.send(encode(game_state.get(["core:per_client_sync","data"])))
+                    with game_state._lock:
+                        for player,connection in active_connections.items():
+                            game_state.set(["core:per_client_sync"],{"player":player,"data":{}})
+                            registry.dispatch("core:calculate_client_display",game_state)
+                            connection.send(encode({"op":"core:sync_with_client","data":game_state.get(["core:per_client_sync","data"])}))
                 game_state.set(["core:client_receive_buffer"],[])
             except Exception as e:
                 if "Handled" not in e.__notes__:
