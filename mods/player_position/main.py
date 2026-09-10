@@ -47,12 +47,12 @@ def updatePlayerPosition(gamestate, registry):
 
         pos = gamestate.get(["players",data["playerName"],"pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
-        gamestate.set(["players", data["playerName"], "position"], pos)
+        gamestate.set(["players", data["playerName"], "pos"], pos)
 
 def sendPlayerPosData(gamestate,registry):
     player=gamestate.get(["core:per_client_sync","player"])
     curdata=gamestate.get(["core:per_client_sync","data"])
-    curdata["player_position:pos"]=gamestate.get(["players",player,"position"])
+    curdata["player_position:pos"]=gamestate.get(["players",player,"pos"])
     gamestate.set(["core:per_client_sync","data"],curdata)
     print(gamestate.get(["core:per_client_sync","data"]))
 
