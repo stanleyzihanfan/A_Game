@@ -33,7 +33,14 @@ wsRegistry.register_handler("core:tick",update_player_move_data,"player_position
 function update_player_position(gamestate){
 	if (gameState.exists(["server_receive_buffer"])){
 		for (const data of gamestate.get(["server_receive_buffer"])){
-			
+			if (Object.hasOwn(data,"player_position:pos")){
+				playerposdata=data["player_position:pos"];
+				camera.position.x=playerposdata["x"];
+				camera.position.y=playerposdata["y"];
+				camera.position.z=playerposdata["z"];
+			}
 		}
 	}
 }
+
+wsRegistry.register_handler("core:tick",update_player_position,"player_position:updatePlayerPos");
