@@ -63,6 +63,9 @@ function onModsReady() {
                 gameState.set(["server_receive_buffer"],tmp);
             }else{
                 gameState.set(["server_receive_buffer"],[],true);
+                let tmp=gameState.get(["server_receive_buffer"]);
+                tmp.push(msg["params"]);
+                gameState.set(["server_receive_buffer"],tmp);
             }
         }
         // else{

@@ -1,33 +1,64 @@
+import math
+
 def testclient_server(gamestate,registry):
     if gamestate.exists(["core:client_receive_buffer"]) and gamestate.get(["core:client_receive_buffer"])!=[]:
         print(gamestate.get(["core:client_receive_buffer"]))
 
 def testserver_client(gamestate,registry):
-    if not (gamestate.exists(["core:sync_with_client"]) or isinstance(gamestate.get(["core:sync_with_client"]),list)):
+    if not (gamestate.exists(["core:global_broadcast"]) or isinstance(gamestate.get(["core:global_broadcast"]),list)):
         return
-    with gamestate._lock:
-        cursync=gamestate.get(["core:sync_with_client"])
-        cursync.append("Sent from Server")
-        # cursync["player_position:testsend"]="Sent from Server"
-        gamestate.set(["core:sync_with_client"],cursync)
+    cursync=gamestate.get(["core:global_broadcast"])
+    cursync.append("Sent from Server")
+    # cursync["player_position:testsend"]="Sent from Server"
+    gamestate.set(["core:global_broadcast"],cursync)
 
-def updatePlayerPosition(gamestate,registry):
-	# const forward = new THREE.Vector3();
-	# const right = new THREE.Vector3();
-	# const up = new THREE.Vector3(0, 1, 0);
-	# const dt=gameState.get(["deltaTime"]);
-	# const dist = gameState.get(["playerData","speed"])*dt;
-	# forward.set(Math.sin(gameState.get(["playerData","yaw"])), 0, Math.cos(gameState.get(["playerData","yaw"]))).negate();
-	# right.crossVectors(forward, up).normalize();
-	# if (gameState.get(["keys","KeyW"])) camera.position.addScaledVector(forward, dist);
-	# if (gameState.get(["keys","KeyS"])) camera.position.addScaledVector(forward, -dist);
-	# if (gameState.get(["keys","KeyA"])) camera.position.addScaledVector(right, -dist);
-	# if (gameState.get(["keys","KeyD"])) camera.position.addScaledVector(right, dist);
-	# if (gameState.get(["keys","Space"])) camera.position.y += dist;
-	# if (gameState.get(["keys","ShiftLeft"]) || gameState.get(["keys","ShiftRight"])) camera.position.y -= dist;
-    pass
+
+def onConnect(gamestate,registry):
+    newPlayerName=gamestate.get(["players","newPlayerName"])
+    if not gamestate.exists(["players",newPlayerName,"pos"]):
+        gamestate.set(["players",newPlayerName,"pos"],{"x":0,"y":0,"z":0},True)
+
+def updatePlayerPosition(gamestate, registry):
+    # TODO:Adapt to use gamestate
+    for data in gamestate.get(["core:client_receive_buffer"]):
+        print(data)
+        if data["data"]==[]:
+            continue
+        positionUpdateData=data["data"]["player_position:movement_handler"]
+        yaw = positionUpdateData["yaw"]
+        speed = positionUpdateData["speed"]
+
+        # Unit circle (cos(yaw),sin(yaw)) rotated 90 degrees (sin(yaw),cos(yaw)), negated for -z=away from camera
+        # y=0 because yaw affects only horizontal plane
+        # forward vector: (-sin(yaw), 0, -cos(yaw))
+        fx, fz = -math.sin(yaw), -math.cos(yaw)
+        # right = forward x up, up = (0,1,0) -> right = (-fz, 0, fx) normalized (already unit length)
+        rx, rz = -fz, fx
+
+        dist = speed * gamestate.get(["core:tickRate"])
+        dx = dz = dy = 0.0
+
+        if positionUpdateData["forward"]: dx += fx * dist; dz += fz * dist
+        if positionUpdateData["back"]:    dx -= fx * dist; dz -= fz * dist
+        if positionUpdateData["left"]:    dx -= rx * dist; dz -= rz * dist
+        if positionUpdateData["right"]:   dx += rx * dist; dz += rz * dist
+        if positionUpdateData["up"]:      dy += dist
+        if positionUpdateData["down"]:    dy -= dist
+
+        pos = gamestate.get(["players",data["playerName"],"pos"])
+        pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
+        gamestate.set(["players", data["playerName"], "pos"], pos)
+
+def sendPlayerPosData(gamestate,registry):
+    player=gamestate.get(["core:per_client_sync","player"])
+    curdata=gamestate.get(["core:per_client_sync","data"])
+    curdata["player_position:pos"]=gamestate.get(["players",player,"pos"])
+    gamestate.set(["core:per_client_sync","data"],curdata)
+    print(gamestate.get(["core:per_client_sync","data"]))
 
 def register(registry):
-    registry.register_handler("core:tick_hook",testclient_server,"player_position:client-server-test")
-    registry.register_handler("core:tick_hook",testserver_client,"player_position:server-client-test")
-    pass
+    # registry.register_handler("core:tick_hook",testclient_server,"player_position:client-server-test")
+    # registry.register_handler("core:tick_hook",testserver_client,"player_position:server-client-test")
+    registry.register_handler("core:on_player_connect",onConnect,"player_position:initialize-player-state")
+    registry.register_handler("core:tick_hook",updatePlayerPosition,"player_position:update-player-pos")
+    registry.register_handler("core:calculate_client_display",sendPlayerPosData,"player_position:send-player-pos-data")

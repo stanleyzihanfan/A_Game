@@ -1,9 +1,9 @@
 import socket, threading, msgpack, traceback, os, mimetypes, time
+from datetime import datetime
 from flask import Flask, Response
 from flask_cors import CORS
 from flask_sock import Sock
 from werkzeug.serving import make_server
-
 from server.ws_registry import Registry
 from server.game_state import GameState
 from server.mod_loader import load_mods
@@ -108,7 +108,9 @@ def server(ws):
                     ws.close(1000,"Incorrect Password")
                     return
                 game_state.set(["players",playerName,"online"],True)
-        registry.dispatch("core:on_player_connect",game_state)
+            game_state.set(["players","newPlayerName"],playerName)
+            registry.dispatch("core:on_player_connect",game_state)
+            game_state.set(["players","newPlayerName"],"")
         #Initialize core:client_receive_buffer in gamestate
         game_state.set(["core:client_receive_buffer"],[],True)
         #Stream client all mod JS files
@@ -154,32 +156,43 @@ def find_port(start=5000):
 # -- Server startup ------------------------------------------------------------
 def start_tick(interval):
     print("Started game...")
+    lastTime=datetime.now()
+    deltaTick=0
+    game_state.set(["core:global_broadcast"],[])
+    game_state.set(["core:client_receive_buffer"],[])
     while True:
-        try:
-            #Dispatch tick handler
-            registry.dispatch("core:tick_hook",game_state)
-            #Send global broadcast data to client
-            if game_state.exists(["core:sync_with_client"]):
+        delta=datetime.now()-lastTime
+        #Cap delta to prevent spiral
+        deltaSec=min(delta.total_seconds(),0.05)
+        deltaTick+=deltaSec
+        lastTime=datetime.now()
+        while deltaTick>=interval:
+            try:
+                game_state.set(["core:tickRate"],interval)
+                #Dispatch tick handler
                 with game_state._lock:
-                    toSync=game_state.get(["core:sync_with_client"])
+                    registry.dispatch("core:tick_hook",game_state)
+                #Send global broadcast data to client
+                with game_state._lock:
+                    toSync=game_state.get(["core:global_broadcast"])
                     for i in toSync:
                         with active_connections_lock:
                             for connection in active_connections.values():
                                 connection.send(encode({"op":"core:sync_with_client","params":i}))
-                    game_state.set(["core:sync_with_client"],[])
-            else:
-                game_state.set(["core:sync_with_client"],[])
-            #Send client-specific data to each client
-            with active_connections_lock:
-                for player,connection in active_connections.items():
-                    game_state.set(["core:per_client_sync"],{"player":player,"data":[]})
-                    registry.dispatch("core:calculate_client_display",game_state)
-            game_state.set(["core:client_receive_buffer"],[])
-        except Exception as e:
-            if "Handled" not in e.__notes__:
-                traceback.print_exc()
-            input("Please press enter to continue execution:")
-        time.sleep(interval)
+                    game_state.set(["core:global_broadcast"],[])
+                #Send client-specific data to each client
+                with active_connections_lock:
+                    with game_state._lock:
+                        for player,connection in active_connections.items():
+                            game_state.set(["core:per_client_sync"],{"player":player,"data":{}})
+                            registry.dispatch("core:calculate_client_display",game_state)
+                            connection.send(encode({"op":"core:sync_with_client","params":game_state.get(["core:per_client_sync","data"])}))
+                game_state.set(["core:client_receive_buffer"],[])
+            except Exception as e:
+                if "Handled" not in e.__notes__:
+                    traceback.print_exc()
+                input("Please press enter to continue execution:")
+            deltaTick-=interval
 tick_thread=threading.Thread(target=start_tick,args=(0.05,),daemon=True)
 def start():
     """Server startup
