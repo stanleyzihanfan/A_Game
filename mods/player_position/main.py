@@ -15,13 +15,14 @@ def testserver_client(gamestate,registry):
 
 def onConnect(gamestate,registry):
     newPlayerName=gamestate.get(["players","newPlayerName"])
-    if not gamestate.exists(["players",newPlayerName,"pos"]):
-        gamestate.set(["players",newPlayerName,"pos"],{"x":0,"y":0,"z":0},True)
+    gamestate.initialize(["players",newPlayerName,"pos"],{"x":0,"y":0,"z":0})
+    gamestate.initialize(["players",newPlayerName,"speed"],8)
+    gamestate.initialize(["players",newPlayerName,"yaw"],0)
 
 def updatePlayerPosition(gamestate, registry):
     # TODO:Adapt to use gamestate
     for data in gamestate.get(["core:client_receive_buffer"]):
-        print(data)
+        # print(data)
         if data["data"]==[]:
             continue
         positionUpdateData=data["data"]["player_position:movement_handler"]
@@ -54,7 +55,7 @@ def sendPlayerPosData(gamestate,registry):
     curdata=gamestate.get(["core:per_client_sync","data"])
     curdata["player_position:pos"]=gamestate.get(["players",player,"pos"])
     gamestate.set(["core:per_client_sync","data"],curdata)
-    print(gamestate.get(["core:per_client_sync","data"]))
+    # print(gamestate.get(["core:per_client_sync","data"]))
 
 def register(registry):
     # registry.register_handler("core:tick_hook",testclient_server,"player_position:client-server-test")

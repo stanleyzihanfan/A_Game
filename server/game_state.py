@@ -4,6 +4,7 @@ class GameState:
     def __init__(self):
         self._state={}
         self._lock=threading.RLock()
+
     def set(self,key:list,value,override=False):
         """Sets a key-value pair to game state
         
@@ -20,6 +21,7 @@ class GameState:
                     last[k] = {}
                 last = last[k]
             last[key[-1]] = value
+
     def get(self,key:list,deepcopy=True):
         """Gets value for key\n
         WARNING: When using deepcopy=False, make sure it is used with thread lock
@@ -38,6 +40,7 @@ class GameState:
                 return copy.deepcopy(last)
             else:
                 return last
+
     def exists(self,key:list):
         """Get if a key exists
 
@@ -51,3 +54,8 @@ class GameState:
                     return False
                 last = last[k]
             return True
+    
+    def initialize(self,key:list,value):
+        with self._lock:
+            if not self.exists(key):
+                self.set(key,value,True)
