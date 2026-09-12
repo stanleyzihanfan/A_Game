@@ -1,3 +1,9 @@
+"""
+Client launcher script.
+
+Starts the client asset server (Flask) and optionally creates a public tunnel
+via cloudflared so remote browsers can connect.
+"""
 import argparse, subprocess, threading, traceback, shutil, os
 from client import launcher
 

@@ -68,14 +68,7 @@ function onModsReady() {
                 gameState.set(["server_receive_buffer"],tmp);
             }
         }
-        // else{
-        //     serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
-        //     if (!gameState.exists(["server_receive_buffer",msg["op"]])){
-        //         gameState.set(["server_receive_buffer",msg["op"]],[]);
-        //         serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
-        //     }
-        //     serverData.push(msg["params"]);
-        // }
+
     }
     console.log(`Client loading complete`);
     loop();

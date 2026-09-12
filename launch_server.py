@@ -1,3 +1,9 @@
+"""
+Server launcher script.
+
+Starts the game backend server (Flask + WebSocket) and optionally creates a
+public tunnel via cloudflared so remote clients can connect.
+"""
 import argparse, subprocess, threading, traceback, shutil, os
 from server import core
 

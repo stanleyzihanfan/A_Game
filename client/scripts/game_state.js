@@ -1,5 +1,8 @@
 /**
- * Central game state storage and accessing handler
+ * Central game state storage and accessing handler.
+ *
+ * Mirrors the server-side GameState API so mod logic can stay consistent
+ * on both ends. Keys are arrays (e.g. ["players", "Alice", "pos"]).
  */
 class GameState {
     constructor() {

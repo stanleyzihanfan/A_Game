@@ -1,3 +1,9 @@
+"""
+Player position handler mod (backend).
+
+Initialises player state on connect, processes movement input each tick,
+and syncs the computed position back to the respective client.
+"""
 import math
 
 def testclient_server(gamestate,registry):
@@ -12,28 +18,25 @@ def testserver_client(gamestate,registry):
     # cursync["player_position:testsend"]="Sent from Server"
     gamestate.set(["core:global_broadcast"],cursync)
 
-
-def onConnect(gamestate,registry):
-    newPlayerName=gamestate.get(["players","newPlayerName"])
-    gamestate.initialize(["players",newPlayerName,"pos"],{"x":0,"y":0,"z":0})
-    gamestate.initialize(["players",newPlayerName,"speed"],8)
-    gamestate.initialize(["players",newPlayerName,"yaw"],0)
+def onConnect(gamestate, registry):
+    """Set up default position, speed, and yaw for a newly connected player."""
+    newPlayerName = gamestate.get(["players", "newPlayerName"])
+    gamestate.initialize(["players", newPlayerName, "pos"], {"x": 0, "y": 0, "z": 0})
+    gamestate.initialize(["players", newPlayerName, "speed"], 8)
+    gamestate.initialize(["players", newPlayerName, "yaw"], 0)
 
 def updatePlayerPosition(gamestate, registry):
-    # TODO:Adapt to use gamestate
+    """Process movement input from clients and update their world positions."""
     for data in gamestate.get(["core:client_receive_buffer"]):
-        # print(data)
-        if data["data"]==[]:
+        if data["data"] == []:
             continue
-        positionUpdateData=data["data"]["player_position:movement_handler"]
+        positionUpdateData = data["data"]["player_position:movement_handler"]
         yaw = positionUpdateData["yaw"]
         speed = positionUpdateData["speed"]
 
-        # Unit circle (cos(yaw),sin(yaw)) rotated 90 degrees (sin(yaw),cos(yaw)), negated for -z=away from camera
-        # y=0 because yaw affects only horizontal plane
-        # forward vector: (-sin(yaw), 0, -cos(yaw))
+        # forward vector on the horizontal plane (-z is "away" from the camera)
         fx, fz = -math.sin(yaw), -math.cos(yaw)
-        # right = forward x up, up = (0,1,0) -> right = (-fz, 0, fx) normalized (already unit length)
+        # right vector is forward rotated 90 deg around Y
         rx, rz = -fz, fx
 
         dist = speed * gamestate.get(["core:tickRate"])
@@ -46,20 +49,18 @@ def updatePlayerPosition(gamestate, registry):
         if positionUpdateData["up"]:      dy += dist
         if positionUpdateData["down"]:    dy -= dist
 
-        pos = gamestate.get(["players",data["playerName"],"pos"])
+        pos = gamestate.get(["players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
         gamestate.set(["players", data["playerName"], "pos"], pos)
 
-def sendPlayerPosData(gamestate,registry):
-    player=gamestate.get(["core:per_client_sync","player"])
-    curdata=gamestate.get(["core:per_client_sync","data"])
-    curdata["player_position:pos"]=gamestate.get(["players",player,"pos"])
-    gamestate.set(["core:per_client_sync","data"],curdata)
-    # print(gamestate.get(["core:per_client_sync","data"]))
+def sendPlayerPosData(gamestate, registry):
+    """Inject the current player's position into the per-client sync payload."""
+    player = gamestate.get(["core:per_client_sync", "player"])
+    curdata = gamestate.get(["core:per_client_sync", "data"])
+    curdata["player_position:pos"] = gamestate.get(["players", player, "pos"])
+    gamestate.set(["core:per_client_sync", "data"], curdata)
 
 def register(registry):
-    # registry.register_handler("core:tick_hook",testclient_server,"player_position:client-server-test")
-    # registry.register_handler("core:tick_hook",testserver_client,"player_position:server-client-test")
-    registry.register_handler("core:on_player_connect",onConnect,"player_position:initialize-player-state")
-    registry.register_handler("core:tick_hook",updatePlayerPosition,"player_position:update-player-pos")
-    registry.register_handler("core:calculate_client_display",sendPlayerPosData,"player_position:send-player-pos-data")
+    registry.register_handler("core:on_player_connect", onConnect, "player_position:initialize-player-state")
+    registry.register_handler("core:tick_hook", updatePlayerPosition, "player_position:update-player-pos")
+    registry.register_handler("core:calculate_client_display", sendPlayerPosData, "player_position:send-player-pos-data")

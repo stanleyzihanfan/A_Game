@@ -1,3 +1,9 @@
+"""
+Core server module.
+
+Sets up the Flask HTTP/WebSocket server, manages client connections,
+runs the game tick loop, and coordinates mods via the WebSocket registry.
+"""
 import socket, threading, msgpack, traceback, os, mimetypes, time
 from datetime import datetime
 from flask import Flask, Response

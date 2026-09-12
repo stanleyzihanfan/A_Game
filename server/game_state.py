@@ -1,4 +1,10 @@
-import threading,copy
+"""
+Central game state storage and accessing handler.
+
+GameState provides a thread-safe nested key-value store used by the server
+to hold world data, player data, and temporary runtime values.
+"""
+import threading, copy
 #Central game state storage and accessing handler
 class GameState:
     def __init__(self):

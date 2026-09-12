@@ -75,8 +75,5 @@ class Registry {
                 }
             }
         }
-        // else{
-        //     console.warn(`Attempted to access unknown frontend handler/hook ${op}.`);
-        // }
     }
 }

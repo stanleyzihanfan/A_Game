@@ -66,5 +66,3 @@ class Registry:
                     traceback.print_exc()
                     e.add_note("Handled")
                     raise
-        # elif handlers!={}:
-        #     print(f"\x1b[31mFrontend attempted to access unknown handler/hook {op}\033[0m")

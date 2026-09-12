@@ -1,3 +1,9 @@
+"""
+Mod loader module.
+
+Scans the /mods directory, reads each manifest.json, and loads each mod's
+backend_py in order, calling register(registry) on each one.
+"""
 import os, json, importlib.util
 
 # -- Mod Loader ----------------------------------------------------------------

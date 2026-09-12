@@ -1,15 +1,16 @@
 // -- First-person camera controls ---------------------------------------------
-//Configs
+
 gameState.set(["playerData","yaw"],0,true);
 gameState.set(["playerData","pitch"],0,true);
-gameState.set(["playerData","speed"],8,true); //units per second
+// Base movement speed in world units per second
+gameState.set(["playerData","speed"],8,true);
 const SCROLL_DIALATION=0.005;
 const SENSITIVITY = 0.002; // radians per pixel
-const whitelist=[document.body,renderer.domElement];
 
 // Elements considered "the game screen" — keydown/keyup are only
 // processed for gameplay when one of these is focused. Everything else
 // (text inputs, future UI panels, etc.) passes keys through untouched.
+const whitelist = [document.body, renderer.domElement];
 function isGameFocused() {
     const active = document.activeElement;
     return whitelist.includes(active);
@@ -47,14 +48,14 @@ document.addEventListener("mousemove", e => {
     gameState.set(["playerData","pitch"],pitch);
 });
 
-//Scroll wheel to control speed
+// Scroll wheel to control movement speed
 document.addEventListener("wheel", e => {
     let speed=gameState.get(["playerData","speed"]);
-    speed-=e.deltaY*SCROLL_DIALATION,0;
-    speed=Math.max(speed,0);
-    gameState.set(["playerData","speed"],speed);
-    document.getElementById("debug").textContent="Speed: "+speed
-})
+    speed -= e.deltaY * SCROLL_DIALATION;
+    speed = Math.max(speed, 0);
+    gameState.set(["playerData","speed"], speed);
+    document.getElementById("debug").textContent = "Speed: " + speed;
+});
 
 // -- Resize handler ------------------------------------------------------------
 window.addEventListener("resize", () => {
@@ -65,24 +66,31 @@ window.addEventListener("resize", () => {
 
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
-let tickDelta=0
-let tickrate=1/20;
-gameState.set(["client_send_buffer"],[],true);
+let tickDelta = 0;            // accumulator for fixed game ticks
+let tickrate = 1 / 20;        // 20 ticks per second
+gameState.set(["client_send_buffer"], [], true);
+
 function loop() {
     requestAnimationFrame(loop);
-    
+
     const now = performance.now();
-    const dt = Math.min((now - last) / 1000, 0.05); // cap at 50ms to avoid spiral
+    // Cap delta time to prevent a spiral of death if the tab is backgrounded
+    const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    tickDelta+=dt;
-    while (tickDelta>=tickrate){
-        gameState.set(["deltaTime"],tickrate,true);
-        wsRegistry.dispatch("core:tick",gameState);
-        socket.send(encode({"op":"sync_with_server","params":gameState.get(["client_send_buffer"])}));
-        gameState.set(["client_send_buffer"],{},true);
-        tickDelta-=tickrate;
-        gameState.set(["server_receive_buffer"],[])
+
+    tickDelta += dt;
+    // Fixed timestep update — runs as many ticks as needed to catch up
+    while (tickDelta >= tickrate) {
+        gameState.set(["deltaTime"], tickrate, true);
+        wsRegistry.dispatch("core:tick", gameState);
+        // Send collected client input to server
+        socket.send(encode({"op": "sync_with_server", "params": gameState.get(["client_send_buffer"])}));
+        gameState.set(["client_send_buffer"], {}, true);
+        tickDelta -= tickrate;
+        // Clear receive buffer after processing
+        gameState.set(["server_receive_buffer"], []);
     }
-    wsRegistry.dispatch("core:update_camera",gameState);
+    // Update camera and render frame
+    wsRegistry.dispatch("core:update_camera", gameState);
     renderer.render(scene, camera);
 }

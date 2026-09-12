@@ -1,4 +1,7 @@
-//Error debug script
+// -- Pre-initialization bootstrap ----------------------------------------------
+// Sets up global error handlers, the client log WebSocket, the server
+// connection overlay, the THREE.js scene, and finally bootstraps the
+// game socket once the user submits server credentials.
 window.onerror = function(msg, src, line, col, err) {
     const div = document.getElementById("errorlog");
     if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
@@ -32,9 +35,7 @@ const LOG_QUEUE_MAX = 500;
 function initLogSocket() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     logSocket = new WebSocket(`${proto}//${location.host}/clientlog`);
-    // console.log("init");
     logSocket.onopen = () => {
-        // console.log("ws open");
         logSocketReady = true;
         while (logQueue.length) {
             logSocket.send(logQueue.shift());
@@ -57,7 +58,6 @@ function sendClientLog(level, timestamp, args) {
         logSocket.send(payload);
     } else {
         logQueue.push(payload);
-        // if (logQueue.length > LOG_QUEUE_MAX) logQueue.shift(); // drop oldest if backed up
     }
 }
 
@@ -85,7 +85,6 @@ function getServerURL() {
 
         input.value = localStorage.getItem("serverURL") || "";
         nameInput.value = localStorage.getItem("playerName") || "";
-        //input.focus();
 
         function submit() {
             console.log("submit");

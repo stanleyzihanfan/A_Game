@@ -1,3 +1,9 @@
+"""
+Client asset server.
+
+Serves the HTML frontend, static files (JS, CSS), and provides a separate
+WebSocket endpoint (/clientlog) for catching browser console output.
+"""
 import socket, os, threading, mimetypes, msgpack
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
@@ -82,7 +88,6 @@ def find_port(start=8000):
                 return port
             except OSError:
                 print(f"Port {port} already in use, trying {port+1} next")
-                #print()
                 port += 1
 
 def start():
