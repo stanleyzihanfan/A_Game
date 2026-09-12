@@ -150,7 +150,6 @@ def find_port(start=5000):
                 return port
             except OSError:
                 print(f"Port {port} already in use, trying {port+1} next")
-                #print()
                 port += 1
 
 # -- Server startup ------------------------------------------------------------
@@ -178,7 +177,7 @@ def start_tick(interval):
                     for i in toSync:
                         with active_connections_lock:
                             for connection in active_connections.values():
-                                connection.send(encode({"op":"core:sync_with_client","params":i}))
+                                connection.send(encode({"op":"core:sync_with_client","data":i}))
                     game_state.set(["core:global_broadcast"],[])
                 #Send client-specific data to each client
                 with active_connections_lock:
@@ -186,7 +185,7 @@ def start_tick(interval):
                         for player,connection in active_connections.items():
                             game_state.set(["core:per_client_sync"],{"player":player,"data":{}})
                             registry.dispatch("core:calculate_client_display",game_state)
-                            connection.send(encode({"op":"core:sync_with_client","params":game_state.get(["core:per_client_sync","data"])}))
+                            connection.send(encode({"op":"core:sync_with_client","data":game_state.get(["core:per_client_sync","data"])}))
                 game_state.set(["core:client_receive_buffer"],[])
             except Exception as e:
                 if "Handled" not in e.__notes__:

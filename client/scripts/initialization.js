@@ -59,12 +59,12 @@ function onModsReady() {
         if (msg["op"]==="core:sync_with_client"){
             if (gameState.exists(["server_receive_buffer"])){
                 let tmp=gameState.get(["server_receive_buffer"]);
-                tmp.push(msg["params"]);
+                tmp.push(msg["data"]);
                 gameState.set(["server_receive_buffer"],tmp);
             }else{
                 gameState.set(["server_receive_buffer"],[],true);
                 let tmp=gameState.get(["server_receive_buffer"]);
-                tmp.push(msg["params"]);
+                tmp.push(msg["data"]);
                 gameState.set(["server_receive_buffer"],tmp);
             }
         }
