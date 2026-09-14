@@ -94,7 +94,7 @@ def server(ws):
         playerName=data["playerName"]
         #Add socket to connected clients
         with active_connections_lock:
-            active_connections[data["playerName"]]=ws
+            active_connections[playerName]=ws
         print(f"Client {playerName} connected.")
         #TODO: Move connection logic to mod
         with game_state._lock:
@@ -114,13 +114,12 @@ def server(ws):
                     ws.close(1000,"Incorrect Password")
                     return
                 game_state.set(["players",playerName,"online"],True)
+        #Stream client all mod JS files
+        _send_mod_scripts(ws)
+        with game_state._lock:
             game_state.set(["players","newPlayerName"],playerName)
             registry.dispatch("core:on_player_connect",game_state)
             game_state.set(["players","newPlayerName"],"")
-        #Initialize core:client_receive_buffer in gamestate
-        game_state.set(["core:client_receive_buffer"],[],True)
-        #Stream client all mod JS files
-        _send_mod_scripts(ws)
         while True:
             data = ws.receive()
             if data is None:
@@ -163,8 +162,10 @@ def start_tick(interval):
     print("Started game...")
     lastTime=datetime.now()
     deltaTick=0
+    #Initialize core communications gamestate fields
     game_state.set(["core:global_broadcast"],[])
     game_state.set(["core:client_receive_buffer"],[])
+    game_state.set(["core:client_receive_buffer"],[],True)
     while True:
         delta=datetime.now()-lastTime
         #Cap delta to prevent spiral
