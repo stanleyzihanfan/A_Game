@@ -119,13 +119,19 @@ def server(ws):
             active_connections[playerName]["status"]="streaming"
         _send_mod_scripts(ws)
         with active_connections_lock:
-            active_connections[playerName]["status"]="initialization"
+            active_connections[playerName]["status"]="modLoad_client"
+        data=decode(ws.receive())
+        if data is None:
+            raise ConnectionResetError(f"Connection {playerName} closed before initialization finished")
+        if decode(data).get("op")!="client_init_done":
+            print(f"Client {playerName} failed to finalize initialization")
+            raise ValueError(f"Client {playerName} failed to finalize initialization")
+        with active_connections_lock:
+            active_connections[playerName]["status"]="ready"
         with game_state._lock:
             game_state.set(["players","newPlayerName"],playerName)
             registry.dispatch("core:on_player_connect",game_state)
             game_state.set(["players","newPlayerName"],"")
-        with active_connections_lock:
-            active_connections[playerName]["status"]="ready"
         while True:
             data = ws.receive()
             if data is None:

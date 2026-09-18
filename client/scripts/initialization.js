@@ -50,8 +50,7 @@ function initClient() {
 }
 
 function onModsReady() {
-    wsRegistry.register_handler("core:mods_ready");
-    wsRegistry.dispatch("core:mods_ready", gameState);
+    console.log(`Client loading complete`);
     // -- Hand off WebSocket to gamestate ------------------------------
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
@@ -68,9 +67,21 @@ function onModsReady() {
                 gameState.set(["server_receive_buffer"],tmp);
             }
         }
-
+        else if (msg["op"]==="core:client_init_data"){
+            if (gameState.exists(["server_receive_buffer"])){
+                let tmp=gameState.get(["server_receive_buffer"]);
+                tmp.push(msg["data"]);
+                gameState.set(["server_receive_buffer"],tmp);
+            }else{
+                gameState.set(["server_receive_buffer"],[],true);
+                let tmp=gameState.get(["server_receive_buffer"]);
+                tmp.push(msg["data"]);
+                gameState.set(["server_receive_buffer"],tmp);
+            }
+            wsRegistry.dispatch("core:init", gameState);
+        }
     }
-    console.log(`Client loading complete`);
+    socket.send(encode({"op": "client_init_done", "params": []}));
     loop();
 }
 
