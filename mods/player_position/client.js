@@ -20,7 +20,7 @@ function test_client_receive(gameState) {
 		console.log(gameState.get(["server_receive_buffer"]));
 	}
 }
-wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
+// wsRegistry.register_handler("core:tick",test_client_receive,"player_position:test_client_receive");
 
 // Collect held-movement keys and current yaw/speed into the send buffer
 function update_player_move_data(gameState) {

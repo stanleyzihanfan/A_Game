@@ -94,7 +94,7 @@ def server(ws):
         playerName=data["playerName"]
         #Add socket to connected clients
         with active_connections_lock:
-            active_connections[playerName]=ws
+            active_connections[playerName]={"socket":ws,"status":"pre-connect"}
         print(f"Client {playerName} connected.")
         #TODO: Move connection logic to mod
         with game_state._lock:
@@ -115,11 +115,17 @@ def server(ws):
                     return
                 game_state.set(["players",playerName,"online"],True)
         #Stream client all mod JS files
+        with active_connections_lock:
+            active_connections[playerName]["status"]="streaming"
         _send_mod_scripts(ws)
+        with active_connections_lock:
+            active_connections[playerName]["status"]="initialization"
         with game_state._lock:
             game_state.set(["players","newPlayerName"],playerName)
             registry.dispatch("core:on_player_connect",game_state)
             game_state.set(["players","newPlayerName"],"")
+        with active_connections_lock:
+            active_connections[playerName]["status"]="ready"
         while True:
             data = ws.receive()
             if data is None:
@@ -129,7 +135,10 @@ def server(ws):
             with game_state._lock:
                 game_state.get(["core:client_receive_buffer"],False).append({"playerName":playerName,"data":data["params"]})
     finally:
-        registry.dispatch("core:on_player_disconnect",game_state)
+        with game_state._lock:
+            game_state.set(["players","disconnectPlayerName"],playerName)
+            registry.dispatch("core:on_player_disconnect",game_state)
+            game_state.set(["players","disconnectPlayerName"],"")
         #Remove from connected clients on client disconnect
         #If playerName is none, the websocket was closed before it was added to active_connections
         if playerName is not None:
@@ -184,15 +193,17 @@ def start_tick(interval):
                     for i in toSync:
                         with active_connections_lock:
                             for connection in active_connections.values():
-                                connection.send(encode({"op":"core:sync_with_client","data":i}))
+                                if connection["status"]=="ready":
+                                    connection["socket"].send(encode({"op":"core:sync_with_client","data":i}))
                     game_state.set(["core:global_broadcast"],[])
                 #Send client-specific data to each client
                 with active_connections_lock:
                     with game_state._lock:
                         for player,connection in active_connections.items():
-                            game_state.set(["core:per_client_sync"],{"player":player,"data":{}})
-                            registry.dispatch("core:calculate_client_display",game_state)
-                            connection.send(encode({"op":"core:sync_with_client","data":game_state.get(["core:per_client_sync","data"])}))
+                            if connection["status"]=="ready":
+                                game_state.set(["core:per_client_sync"],{"player":player,"data":{}})
+                                registry.dispatch("core:calculate_client_display",game_state)
+                                connection["socket"].send(encode({"op":"core:sync_with_client","data":game_state.get(["core:per_client_sync","data"])}))
                 game_state.set(["core:client_receive_buffer"],[])
             except Exception as e:
                 if "Handled" not in e.__notes__:
@@ -224,7 +235,7 @@ def shutdown():
     with active_connections_lock:
         for k,ws in active_connections.items():
             try:
-                ws.close()
+                ws["socket"].close()
             except Exception:
                 pass
     if flask_server:
