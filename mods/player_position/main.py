@@ -53,12 +53,16 @@ def updatePlayerPosition(gamestate, registry):
         pos = gamestate.get(["players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
         gamestate.set(["players", data["playerName"], "pos"], pos)
+        gamestate.set(["players", data["playerName"], "yaw"], positionUpdateData["yaw"])
+        gamestate.set(["players", data["playerName"], "pitch"], positionUpdateData["pitch"])
 
 def sendPlayerPosData(gamestate, registry):
     """Inject the current player's position into the per-client sync payload."""
     player = gamestate.get(["core:per_client_sync", "player"])
     curdata = gamestate.get(["core:per_client_sync", "data"])
     curdata["player_position:pos"] = gamestate.get(["players", player, "pos"])
+    curdata["player_position:yaw"] = gamestate.get(["players", player, "yaw"])
+    curdata["player_position:pitch"] = gamestate.get(["players", player, "pitch"])
     gamestate.set(["core:per_client_sync", "data"], curdata)
 
 def register(registry):

@@ -27,6 +27,7 @@ function update_player_move_data(gameState) {
     const sendbuffer = gameState.get(["client_send_buffer"]);
     const moveState = {};
     moveState.yaw = gameState.get(["playerData", "yaw"]);
+    moveState.pitch = gameState.get(["playerData","pitch"]);
     moveState.forward = gameState.get(["keys", "KeyW"]);
     moveState.back = gameState.get(["keys", "KeyS"]);
     moveState.left = gameState.get(["keys", "KeyA"]);
@@ -46,6 +47,12 @@ function update_player_position(gamestate) {
         for (const data of gamestate.get(["server_receive_buffer"])) {
             if (Object.hasOwn(data, "player_position:pos")) {
                 const playerposdata = data["player_position:pos"];
+                camera.position.x = playerposdata["x"];
+                camera.position.y = playerposdata["y"];
+                camera.position.z = playerposdata["z"];
+            }
+            if (Object.hasOwn(data, "player_position:yaw")) {
+                const playerposdata = data["player_position:yaw"];
                 camera.position.x = playerposdata["x"];
                 camera.position.y = playerposdata["y"];
                 camera.position.z = playerposdata["z"];
