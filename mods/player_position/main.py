@@ -29,7 +29,7 @@ def onConnect(gamestate, registry):
 def updatePlayerPosition(gamestate, registry):
     """Process movement input from clients and update their world positions."""
     for data in gamestate.get(["core:client_receive_buffer"]):
-        if data["data"] == []:
+        if data["data"] == [] or data["data"].get("player_position:movement_handler")==None:
             continue
         positionUpdateData = data["data"]["player_position:movement_handler"]
         yaw = positionUpdateData["yaw"]
@@ -52,9 +52,8 @@ def updatePlayerPosition(gamestate, registry):
 
         pos = gamestate.get(["players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
+        pos["yaw"]=yaw; pos["pitch"]=positionUpdateData["pitch"]
         gamestate.set(["players", data["playerName"], "pos"], pos)
-        gamestate.set(["players", data["playerName"], "yaw"], positionUpdateData["yaw"])
-        gamestate.set(["players", data["playerName"], "pitch"], positionUpdateData["pitch"])
 
 def sendPlayerPosData(gamestate, registry):
     """Inject the current player's position into the per-client sync payload."""

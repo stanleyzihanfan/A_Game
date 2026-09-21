@@ -51,7 +51,7 @@ function initClient() {
 
 function onModsReady() {
     console.log(`Client loading complete`);
-    gameState.set(["core:initialized"],false);
+    gameState.set(["core:initialized"],false,true);
     // -- Hand off WebSocket to gamestate ------------------------------
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));

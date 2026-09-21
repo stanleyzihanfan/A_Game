@@ -123,7 +123,7 @@ def server(ws):
         data=decode(ws.receive())
         if data is None:
             raise ConnectionResetError(f"Connection {playerName} closed before initialization finished")
-        if decode(data).get("op")!="client_init_done":
+        if data.get("op")!="client_init_done":
             print(f"Client {playerName} failed to finalize initialization")
             raise ValueError(f"Client {playerName} failed to finalize initialization")
         with active_connections_lock:

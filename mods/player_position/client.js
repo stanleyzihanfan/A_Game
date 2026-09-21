@@ -50,12 +50,8 @@ function update_player_position(gamestate) {
                 camera.position.x = playerposdata["x"];
                 camera.position.y = playerposdata["y"];
                 camera.position.z = playerposdata["z"];
-            }
-            if (Object.hasOwn(data, "player_position:yaw")) {
-                const playerposdata = data["player_position:yaw"];
-                camera.position.x = playerposdata["x"];
-                camera.position.y = playerposdata["y"];
-                camera.position.z = playerposdata["z"];
+                gamestate.set(["playerData","yaw"],playerposdata["yaw"]);
+                gamestate.set(["playerData","pitch"],playerposdata["pitch"]);
             }
         }
     }

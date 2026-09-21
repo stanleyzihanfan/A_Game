@@ -82,7 +82,8 @@ function loop() {
     // Fixed timestep update — runs as many ticks as needed to catch up
     while (tickDelta >= tickrate) {
         gameState.set(["deltaTime"], tickrate, true);
-        wsRegistry.dispatch("core:tick", gameState);
+        if (gameState.get(["core:initialized"]))
+            wsRegistry.dispatch("core:tick", gameState);
         // Send collected client input to server
         socket.send(encode({"op": "sync_with_server", "params": gameState.get(["client_send_buffer"])}));
         gameState.set(["client_send_buffer"], {}, true);
