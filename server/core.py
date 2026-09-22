@@ -139,7 +139,7 @@ def server(ws):
             data = decode(data)
             # Route message to game state
             with game_state._lock:
-                game_state.get(["core:client_receive_buffer"],False).append({"playerName":playerName,"data":data["params"]})
+                game_state.get(["core:client_receive_buffer"],False,False).append({"playerName":playerName,"data":data["params"]})
     finally:
         with game_state._lock:
             game_state.set(["players","disconnectPlayerName"],playerName)
