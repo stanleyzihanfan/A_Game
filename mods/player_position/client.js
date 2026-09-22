@@ -28,12 +28,12 @@ function update_player_move_data(gameState) {
     const moveState = {};
     moveState.yaw = gameState.get(["playerData", "yaw"]);
     moveState.pitch = gameState.get(["playerData","pitch"]);
-    moveState.forward = gameState.get(["keys", "KeyW"]);
-    moveState.back = gameState.get(["keys", "KeyS"]);
-    moveState.left = gameState.get(["keys", "KeyA"]);
-    moveState.right = gameState.get(["keys", "KeyD"]);
-    moveState.up = gameState.get(["keys", "Space"]);
-    moveState.down = gameState.get(["keys", "ShiftLeft"]);
+    moveState.forward = gameState.isKeyDown("KeyW");
+    moveState.back = gameState.isKeyDown("KeyS");
+    moveState.left = gameState.isKeyDown("KeyA");
+    moveState.right = gameState.isKeyDown("KeyD");
+    moveState.up = gameState.isKeyDown("Space");
+    moveState.down = gameState.isKeyDown("ShiftLeft");
     moveState.speed = gameState.get(["playerData", "speed"]);
     sendbuffer["player_position:movement_handler"] = moveState;
     gameState.set(["client_send_buffer"], sendbuffer);
