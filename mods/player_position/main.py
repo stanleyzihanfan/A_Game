@@ -21,7 +21,7 @@ def testserver_client(gamestate,registry):
 def onConnect(gamestate, registry):
     """Set up default position, speed, and yaw for a newly connected player."""
     newPlayerName = gamestate.get(["players", "newPlayerName"])
-    gamestate.initialize(["players", newPlayerName, "pos"], {"x": 0, "y": 0, "z": 0})
+    gamestate.initialize(["players", newPlayerName, "pos"], {"x": 0, "y": 0, "z": 0, "pitch":0, "yaw":0})
     gamestate.initialize(["players", newPlayerName, "speed"], 8)
     gamestate.initialize(["players", newPlayerName, "yaw"], 0)
     gamestate.initialize(["players", newPlayerName, "pitch"], 0)
@@ -60,8 +60,6 @@ def sendPlayerPosData(gamestate, registry):
     player = gamestate.get(["core:per_client_sync", "player"])
     curdata = gamestate.get(["core:per_client_sync", "data"])
     curdata["player_position:pos"] = gamestate.get(["players", player, "pos"])
-    curdata["player_position:yaw"] = gamestate.get(["players", player, "yaw"])
-    curdata["player_position:pitch"] = gamestate.get(["players", player, "pitch"])
     gamestate.set(["core:per_client_sync", "data"], curdata)
 
 def register(registry):

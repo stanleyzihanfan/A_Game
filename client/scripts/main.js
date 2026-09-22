@@ -28,7 +28,7 @@ document.addEventListener("keyup", e => {
     if (!isGameFocused()) {
         return;
     }
-    gameState.set(["keys",e.code],false);
+    gameState.set(["keys",e.code],false,true);
     wsRegistry.dispatch("core:keyup",gameState);
 });
 
@@ -68,7 +68,7 @@ window.addEventListener("resize", () => {
 let last = performance.now();
 let tickDelta = 0;            // accumulator for fixed game ticks
 let tickrate = 1 / 20;        // 20 ticks per second
-gameState.set(["client_send_buffer"], [], true);
+gameState.set(["client_send_buffer"], {}, true);
 
 function loop() {
     requestAnimationFrame(loop);

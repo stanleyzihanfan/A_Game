@@ -28,19 +28,20 @@ class GameState:
                 last = last[k]
             last[key[-1]] = value
 
-    def get(self,key:list,deepcopy=True):
+    def get(self,key:list,default=None, deepcopy=True):
         """Gets value for key\n
         WARNING: When using deepcopy=False, make sure it is used with thread lock
 
         :param key: Key to get value for
+        :param default: Default value
         :param deepcopy: Whether to return a deep copy of value
-        :return: Returns value if key exists, else returns None
+        :return: Returns value if key exists, else returns default
         """
         with self._lock:
             last=self._state
             for k in key:
                 if not isinstance(last,dict) or k not in last:
-                    return None
+                    return default
                 last=last[k]
             if deepcopy:
                 return copy.deepcopy(last)
@@ -62,6 +63,11 @@ class GameState:
             return True
     
     def initialize(self,key:list,value):
+        """Helper function to initialize a value if it does not exist, else do nothing
+        
+        :param key: key to initialize
+        :param value: value to initialize to
+        """
         with self._lock:
             if not self.exists(key):
                 self.set(key,value,True)
