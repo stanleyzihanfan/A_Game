@@ -50,8 +50,8 @@ function update_player_position(gamestate) {
                 camera.position.x = playerposdata["x"];
                 camera.position.y = playerposdata["y"];
                 camera.position.z = playerposdata["z"];
-                gamestate.set(["playerData","yaw"],playerposdata["yaw"]);
-                gamestate.set(["playerData","pitch"],playerposdata["pitch"]);
+                // gamestate.set(["playerData","yaw"],playerposdata["yaw"]);
+                // gamestate.set(["playerData","pitch"],playerposdata["pitch"]);
             }
         }
     }

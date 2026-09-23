@@ -52,7 +52,7 @@ def updatePlayerPosition(gamestate, registry):
 
         pos = gamestate.get(["players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
-        pos["yaw"]=yaw; pos["pitch"]=positionUpdateData["pitch"]
+        # pos["yaw"]=yaw; pos["pitch"]=positionUpdateData["pitch"]
         gamestate.set(["players", data["playerName"], "pos"], pos)
 
 def sendPlayerPosData(gamestate, registry):
