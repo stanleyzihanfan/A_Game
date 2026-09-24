@@ -1,5 +1,6 @@
 {
     "modID": "testmod",
+    "namespace": "testmod",
     "name": "Test Mod",
     "version": "0.1.0",
     "description": "Testing mod",

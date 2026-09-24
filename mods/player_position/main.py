@@ -3,35 +3,40 @@ Player position handler mod (backend).
 
 Initialises player state on connect, processes movement input each tick,
 and syncs the computed position back to the respective client.
+
+Namespacing: this mod's manifest.json declares "namespace": "player_position".
+Every unqualified op, handler name, and game-state key below is automatically
+prefixed with it at load time — e.g. "movement_handler" becomes
+"player_position:movement_handler". Core keys ("core:...") are always
+explicitly qualified and pass through untouched.
 """
 import math
 
 def testclient_server(gamestate,registry):
-    if gamestate.exists(["core:client_receive_buffer"]) and gamestate.get(["core:client_receive_buffer"])!=[]:
-        print(gamestate.get(["core:client_receive_buffer"]))
+    for entry in gamestate.get_client_messages():
+        print(entry)
 
 def testserver_client(gamestate,registry):
-    if not (gamestate.exists(["core:global_broadcast"]) or isinstance(gamestate.get(["core:global_broadcast"]),list)):
-        return
-    cursync=gamestate.get(["core:global_broadcast"])
-    cursync.append("Sent from Server")
-    # cursync["player_position:testsend"]="Sent from Server"
-    gamestate.set(["core:global_broadcast"],cursync)
+    gamestate.add_to_broadcast("testsend", "Sent from Server")
 
 def onConnect(gamestate, registry):
     """Set up default position, speed, and yaw for a newly connected player."""
-    newPlayerName = gamestate.get(["players", "newPlayerName"])
-    gamestate.initialize(["players", newPlayerName, "pos"], {"x": 0, "y": 0, "z": 0, "pitch":0, "yaw":0})
-    gamestate.initialize(["players", newPlayerName, "speed"], 8)
-    gamestate.initialize(["players", newPlayerName, "yaw"], 0)
-    gamestate.initialize(["players", newPlayerName, "pitch"], 0)
+    newPlayerName = gamestate.get(["core:players", "newPlayerName"])
+    gamestate.initialize(["core:players", newPlayerName, "pos"], {"x": 0, "y": 0, "z": 0, "pitch":0, "yaw":0})
+    gamestate.initialize(["core:players", newPlayerName, "speed"], 8)
+    gamestate.initialize(["core:players", newPlayerName, "yaw"], 0)
+    gamestate.initialize(["core:players", newPlayerName, "pitch"], 0)
 
 def updatePlayerPosition(gamestate, registry):
     """Process movement input from clients and update their world positions."""
-    for data in gamestate.get(["core:client_receive_buffer"]):
-        if data["data"] == [] or data["data"].get("player_position:movement_handler")==None:
+    # The client sends this mod's movement data under the namespaced key
+    # ("movement_handler" -> "player_position:movement_handler" on the client).
+    ns = registry.current_namespace()
+    for data in gamestate.get_client_messages():
+        moveState = data["data"].get(f"{ns}:movement_handler")
+        if moveState is None:
             continue
-        positionUpdateData = data["data"]["player_position:movement_handler"]
+        positionUpdateData = moveState
         yaw = positionUpdateData["yaw"]
         speed = positionUpdateData["speed"]
 
@@ -50,19 +55,18 @@ def updatePlayerPosition(gamestate, registry):
         if positionUpdateData["up"]:      dy += dist
         if positionUpdateData["down"]:    dy -= dist
 
-        pos = gamestate.get(["players", data["playerName"], "pos"])
+        pos = gamestate.get(["core:players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
         # pos["yaw"]=yaw; pos["pitch"]=positionUpdateData["pitch"]
-        gamestate.set(["players", data["playerName"], "pos"], pos)
+        gamestate.set(["core:players", data["playerName"], "pos"], pos)
 
 def sendPlayerPosData(gamestate, registry):
     """Inject the current player's position into the per-client sync payload."""
     player = gamestate.get(["core:per_client_sync", "player"])
-    curdata = gamestate.get(["core:per_client_sync", "data"])
-    curdata["player_position:pos"] = gamestate.get(["players", player, "pos"])
-    gamestate.set(["core:per_client_sync", "data"], curdata)
+    pos = gamestate.get(["core:players", player, "pos"])
+    gamestate.add_to_client_sync("pos", pos)
 
 def register(registry):
-    registry.register_handler("core:on_player_connect", onConnect, "player_position:initialize-player-state")
-    registry.register_handler("core:tick_hook", updatePlayerPosition, "player_position:update-player-pos")
-    registry.register_handler("core:calculate_client_display", sendPlayerPosData, "player_position:send-player-pos-data")
+    registry.register_handler("core:on_player_connect", onConnect, "initialize-player-state")
+    registry.register_handler("core:tick_hook", updatePlayerPosition, "update-player-pos")
+    registry.register_handler("core:calculate_client_display", sendPlayerPosData, "send-player-pos-data")

@@ -57,15 +57,15 @@ function onModsReady() {
         const msg = msgpack.decode(new Uint8Array(e.data));
         //Route message to game state
         if (msg["op"]==="core:sync_with_client"){
-            if (gameState.exists(["server_receive_buffer"])){
-                let tmp=gameState.get(["server_receive_buffer"]);
+            if (gameState.exists(["core:server_receive_buffer"])){
+                let tmp=gameState.get(["core:server_receive_buffer"]);
                 tmp.push(msg["data"]);
-                gameState.set(["server_receive_buffer"],tmp);
+                gameState.set(["core:server_receive_buffer"],tmp);
             }else{
-                gameState.set(["server_receive_buffer"],[],true);
-                let tmp=gameState.get(["server_receive_buffer"]);
+                gameState.set(["core:server_receive_buffer"],[],true);
+                let tmp=gameState.get(["core:server_receive_buffer"]);
                 tmp.push(msg["data"]);
-                gameState.set(["server_receive_buffer"],tmp);
+                gameState.set(["core:server_receive_buffer"],tmp);
             }
             if (!gameState.get(["core:initialized"])){
                 wsRegistry.dispatch("core:init", gameState);
@@ -91,10 +91,20 @@ function onSocketMessage(e) {
         return;
     }
     else if (msg["op"] === "load_mod_js") {
-        const [modID, src] = msg["params"];
+        // params: [modID, source, namespace] — namespace comes from the
+        // mod's manifest.json and auto-prefixes unqualified names/keys the
+        // script uses, mirroring the server-side mod loader.
+        const [modID, src, namespace] = msg["params"];
         try {
             console.log(`Loading frontend mod script: ${modID}`);
-            eval(src);
+            wsRegistry.pushNamespace(namespace);
+            gameState.pushNamespace(namespace);
+            try {
+                eval(src);
+            } finally {
+                wsRegistry.popNamespace();
+                gameState.popNamespace();
+            }
             console.log(`  ${modID} loaded OK`);
         } catch(err) {
             const div = document.getElementById("errorlog");

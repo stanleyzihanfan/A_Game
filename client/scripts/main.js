@@ -1,9 +1,9 @@
 // -- First-person camera controls ---------------------------------------------
 
-gameState.set(["playerData","yaw"],0,true);
-gameState.set(["playerData","pitch"],0,true);
+gameState.set(["core:playerData","yaw"],0,true);
+gameState.set(["core:playerData","pitch"],0,true);
 // Base movement speed in world units per second
-gameState.set(["playerData","speed"],8,true);
+gameState.set(["core:playerData","speed"],8,true);
 const SCROLL_DIALATION=0.005;
 const SENSITIVITY = 0.002; // radians per pixel
 
@@ -20,7 +20,7 @@ document.addEventListener("keydown", e => {
     if (!isGameFocused()) {
         return; // some other UI element is focused — let it handle typing normally
     }
-    gameState.set(["keys",e.code],true,true);
+    gameState.set(["core:keys",e.code],true,true);
     e.preventDefault(); 
     wsRegistry.dispatch("core:keydown",gameState);
 });
@@ -28,7 +28,7 @@ document.addEventListener("keyup", e => {
     if (!isGameFocused()) {
         return;
     }
-    gameState.set(["keys",e.code],false,true);
+    gameState.set(["core:keys",e.code],false,true);
     wsRegistry.dispatch("core:keyup",gameState);
 });
 
@@ -39,21 +39,21 @@ renderer.domElement.addEventListener("click", () => {
 //Set camera look direction
 document.addEventListener("mousemove", e => {
     if (document.pointerLockElement !== renderer.domElement) return;
-    let yaw=gameState.get(["playerData","yaw"]);
-    let pitch=gameState.get(["playerData","pitch"]);
+    let yaw=gameState.get(["core:playerData","yaw"]);
+    let pitch=gameState.get(["core:playerData","pitch"]);
     yaw -= e.movementX * SENSITIVITY;
     pitch -= e.movementY * SENSITIVITY;
     pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
-    gameState.set(["playerData","yaw"],yaw);
-    gameState.set(["playerData","pitch"],pitch);
+    gameState.set(["core:playerData","yaw"],yaw);
+    gameState.set(["core:playerData","pitch"],pitch);
 });
 
 // Scroll wheel to control movement speed
 document.addEventListener("wheel", e => {
-    let speed=gameState.get(["playerData","speed"]);
+    let speed=gameState.get(["core:playerData","speed"]);
     speed -= e.deltaY * SCROLL_DIALATION;
     speed = Math.max(speed, 0);
-    gameState.set(["playerData","speed"], speed);
+    gameState.set(["core:playerData","speed"], speed);
     document.getElementById("debug").textContent = "Speed: " + speed;
 });
 
@@ -68,7 +68,7 @@ window.addEventListener("resize", () => {
 let last = performance.now();
 let tickDelta = 0;            // accumulator for fixed game ticks
 let tickrate = 1 / 20;        // 20 ticks per second
-gameState.set(["client_send_buffer"], {}, true);
+gameState.set(["core:client_send_buffer"], {}, true);
 
 function loop() {
     requestAnimationFrame(loop);
@@ -81,15 +81,15 @@ function loop() {
     tickDelta += dt;
     // Fixed timestep update — runs as many ticks as needed to catch up
     while (tickDelta >= tickrate) {
-        gameState.set(["deltaTime"], tickrate, true);
+        gameState.set(["core:deltaTime"], tickrate, true);
         if (gameState.get(["core:initialized"]))
             wsRegistry.dispatch("core:tick", gameState);
         // Send collected client input to server
-        socket.send(encode({"op": "sync_with_server", "params": gameState.get(["client_send_buffer"])}));
-        gameState.set(["client_send_buffer"], {}, true);
+        socket.send(encode({"op": "sync_with_server", "params": gameState.get(["core:client_send_buffer"])}));
+        gameState.set(["core:client_send_buffer"], {}, true);
         tickDelta -= tickrate;
         // Clear receive buffer after processing
-        gameState.set(["server_receive_buffer"], []);
+        gameState.set(["core:server_receive_buffer"], []);
     }
     // Update camera and render frame
     wsRegistry.dispatch("core:update_camera", gameState);

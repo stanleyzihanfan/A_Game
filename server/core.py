@@ -58,7 +58,11 @@ def index():
 # -- WebSocket -----------------------------------------------------------------
 # Patch client mod js scripts
 def _send_mod_scripts(ws):
-    """Send each loaded mod's client.js source over the websocket, then signal ready."""
+    """Send each loaded mod's client.js source over the websocket, then signal ready.
+
+    The mod's manifest namespace travels with the script so the client can
+    apply the same auto-namespacing while eval()ing it.
+    """
     for manifest in loaded_mods:
         client_js = manifest.get("client_js")
         if not client_js:
@@ -68,7 +72,7 @@ def _send_mod_scripts(ws):
             continue
         with open(js_path, "r") as f:
             src = f.read()
-        ws.send(encode({"op": "load_mod_js", "params": [manifest["modID"], src]}))
+        ws.send(encode({"op": "load_mod_js", "params": [manifest["modID"], src, manifest.get("_namespace", manifest["modID"])]}))
     # Signal that all mod scripts have been sent
     ws.send(encode({"op": "mods_ready", "params": []}))
 
@@ -99,21 +103,21 @@ def server(ws):
         #TODO: Move connection logic to mod
         with game_state._lock:
             #Generate new player entry if it doesn't exist
-            if not game_state.exists(["players",playerName]):
-                game_state.set(["players",playerName,"online"],True,True)
-                game_state.set(["players",playerName,"password"],data["psw"],True)
+            if not game_state.exists(["core:players",playerName]):
+                game_state.set(["core:players",playerName,"online"],True,True)
+                game_state.set(["core:players",playerName,"password"],data["psw"],True)
             #Check if player is already online
-            elif game_state.get(["players",playerName,"online"]):
+            elif game_state.get(["core:players",playerName,"online"]):
                 print(f"\033[33mA client attempted to connect but player {playerName} is already online. Connection terminated.\033[0m")
                 ws.close(1002,"Player already online")
                 return
             else:
                 #Check password
-                if game_state.get(["players",playerName,"password"])!=data["psw"]:
+                if game_state.get(["core:players",playerName,"password"])!=data["psw"]:
                     print(f"\033[33mPlayer {playerName} connected with incorrect password.\033[0m")
                     ws.close(1000,"Incorrect Password")
                     return
-                game_state.set(["players",playerName,"online"],True)
+                game_state.set(["core:players",playerName,"online"],True)
         #Stream client all mod JS files
         with active_connections_lock:
             active_connections[playerName]["status"]="streaming"
@@ -129,9 +133,9 @@ def server(ws):
         with active_connections_lock:
             active_connections[playerName]["status"]="ready"
         with game_state._lock:
-            game_state.set(["players","newPlayerName"],playerName)
+            game_state.set(["core:players","newPlayerName"],playerName)
             registry.dispatch("core:on_player_connect",game_state)
-            game_state.set(["players","newPlayerName"],"")
+            game_state.set(["core:players","newPlayerName"],"")
         while True:
             data = ws.receive()
             if data is None:
@@ -142,9 +146,9 @@ def server(ws):
                 game_state.get(["core:client_receive_buffer"],False,False).append({"playerName":playerName,"data":data["params"]})
     finally:
         with game_state._lock:
-            game_state.set(["players","disconnectPlayerName"],playerName)
+            game_state.set(["core:players","disconnectPlayerName"],playerName)
             registry.dispatch("core:on_player_disconnect",game_state)
-            game_state.set(["players","disconnectPlayerName"],"")
+            game_state.set(["core:players","disconnectPlayerName"],"")
         #Remove from connected clients on client disconnect
         #If playerName is none, the websocket was closed before it was added to active_connections
         if playerName is not None:
@@ -152,7 +156,7 @@ def server(ws):
                 active_connections.pop(playerName,None)
             #Set player to be offline
             with game_state._lock:
-                game_state.set(["players",playerName,"online"],False,True)
+                game_state.set(["core:players",playerName,"online"],False,True)
             print(f"Client {playerName} disconnected.")
 
 def find_port(start=5000):
@@ -221,8 +225,8 @@ def start():
     """Server startup
     """
     global flask_server, loaded_mods
-    #load mods
-    loaded_mods=load_mods(registry)
+    #load mods (game_state passed so mod keys get namespaced during loading too)
+    loaded_mods=load_mods(registry, game_state)
     #Launch flask server
     port = find_port()
     print(f"Port {port} open, launching server")
