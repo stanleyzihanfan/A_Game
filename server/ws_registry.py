@@ -5,7 +5,7 @@ from server.game_state import GameState
 # Mods call register_handler() to add their own ops
 class Registry:
     def __init__(self):
-        self._handlers = {"tick":{}}
+        self._handlers = {"core:tick":{}}
 
     def register_handler(self, op: str, func=None, name:str = None):
         """
