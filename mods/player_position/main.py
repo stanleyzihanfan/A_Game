@@ -26,6 +26,7 @@ def onConnect(gamestate, registry):
     gamestate.initialize(["core:players", newPlayerName, "speed"], 8)
     gamestate.initialize(["core:players", newPlayerName, "yaw"], 0)
     gamestate.initialize(["core:players", newPlayerName, "pitch"], 0)
+    # gamestate.add_to_client_sync()
 
 def updatePlayerPosition(gamestate, registry):
     """Process movement input from clients and update their world positions."""

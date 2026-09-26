@@ -130,12 +130,12 @@ def server(ws):
         if data.get("op")!="client_init_done":
             print(f"Client {playerName} failed to finalize initialization")
             raise ValueError(f"Client {playerName} failed to finalize initialization")
-        with active_connections_lock:
-            active_connections[playerName]["status"]="ready"
         with game_state._lock:
             game_state.set(["core:players","newPlayerName"],playerName)
             registry.dispatch("core:on_player_connect",game_state)
             game_state.set(["core:players","newPlayerName"],"")
+        with active_connections_lock:
+            active_connections[playerName]["status"]="ready"
         while True:
             data = ws.receive()
             if data is None:
