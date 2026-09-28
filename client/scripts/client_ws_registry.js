@@ -84,6 +84,8 @@ class Registry {
      * @param {Function} func - Function object of handler
      * @param {string} [name] - Name of handler function
      */
+    // -- Handler registration ------------------------------------------------------
+    // The main API mods use at load time to declare their handlers.
     register_handler(op, func = null, name = null) {
         // Capture the namespace active at registration (null for core code)
         const handlerNamespace = this.currentNamespace();
@@ -121,6 +123,8 @@ class Registry {
      * If name is not provided/None, returns full event hook of handler+name as an object.
      * Returns null if not found.
      */
+    // -- Handler retrieval ----------------------------------------------------------
+    // Looks up a handler record (or a whole op's object) by name.
     get_handler(op, name = null) {
         op = this._resolve(op);
         if (name !== null) name = this._resolve(name);
@@ -142,6 +146,9 @@ class Registry {
      * @param {string} op - Event hook to dispatch
      * @param {GameState} gameState - The game state to pass to handlers
      */
+    // -- Dispatch -------------------------------------------------------------------
+    // Runs every handler registered under an op, each inside the namespace it was
+    // registered under, passing the game state and registry to the handler.
     dispatch(op, gameState) {
         const handlers = this.get_handler(op);
         if (handlers) {

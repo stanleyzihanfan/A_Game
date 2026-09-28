@@ -14,17 +14,20 @@ already contains ":" (e.g. ["core:client_receive_buffer", ...]) pass
 through untouched, so core keys stay hard-coded.
 """
 import threading, copy
-#Central game state storage and accessing handler
+
+# Central game state storage and accessing handler
 class GameState:
     def __init__(self):
-        self._state={}
-        self._lock=threading.RLock()
+        self._state = {}
+        self._lock = threading.RLock()
         # Stack of active mod namespaces (mirrors Registry._namespace_stack).
         # Empty means "not inside mod code" — unqualified keys then reference
         # core game data as before, preserving existing behavior.
         self._namespace_stack = []
 
     # -- Namespace management ---------------------------------------------------
+    # While a mod's code runs, the active namespace is pushed here so that any
+    # unqualified key it uses is auto-prefixed by _resolve() below.
     def push_namespace(self, namespace):
         """Enter a mod's namespace. Mod loader calls this around register().
 
@@ -41,6 +44,9 @@ class GameState:
         """Return the active namespace, or None if not inside mod code."""
         return self._namespace_stack[-1] if self._namespace_stack else None
 
+    # -- Key resolution ----------------------------------------------------------
+    # Internal helper backing set/get/exists/initialize. It is what turns a
+    # mod's unqualified key into a fully-namespaced one at access time.
     def _resolve(self, key: list) -> list:
         """Prefix an unqualified key's first element with the active namespace.
 
@@ -60,6 +66,9 @@ class GameState:
             return key
         return [f"{namespace}:{key[0]}"] + list(key[1:])
 
+    # -- Key-value accessors ------------------------------------------------------
+    # The public API for reading/writing world and player data. All of them
+    # auto-namespace unqualified keys with the active mod namespace.
     def set(self,key:list,value,override=False):
         """Sets a key-value pair to game state
 
@@ -176,9 +185,12 @@ class GameState:
     def add_to_client_sync(self, key: str, value):
         """Add a key-value pair to the current per-client sync payload.
 
-        Must be called from a "core:calculate_client_display" handler — the
-        payload only exists while the server computes one client's display
-        data. The key is namespaced automatically.
+        The payload is set up by core before two hooks: while the server
+        computes one client's display data ("core:calculate_client_display"),
+        and while a newly connected player's initialization runs
+        ("core:on_player_connect"). In the on_player_connect case core sends
+        the collected payload to the connecting client as a one-time init
+        message. The key is namespaced automatically.
 
         :param key: Unqualified key to sync under
         :param value: Value to send
@@ -203,6 +215,8 @@ class GameState:
         """
         with self._lock:
             buffer = self.get(["core:client_receive_buffer"], default=[])
+            # No player filter -> return everything buffered this tick
             if playerName is None:
                 return buffer
+            # Otherwise keep only that player's entries
             return [entry for entry in buffer if entry.get("playerName") == playerName]

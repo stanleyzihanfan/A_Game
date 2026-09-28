@@ -5,3 +5,4 @@ __pycache__/
 .Python
 agents.md
 .venv
+.gitignore

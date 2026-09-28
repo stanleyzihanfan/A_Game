@@ -1,5 +1,5 @@
 // -- First-person camera controls ---------------------------------------------
-
+// Initializes the player's look/rotation state and the movement speed.
 gameState.set(["core:playerData","yaw"],0,true);
 gameState.set(["core:playerData","pitch"],0,true);
 // Base movement speed in world units per second
@@ -16,6 +16,7 @@ function isGameFocused() {
     return whitelist.includes(active);
 }
 
+// -- Input handling: keyboard ---------------------------------------------------
 document.addEventListener("keydown", e => { 
     if (!isGameFocused()) {
         return; // some other UI element is focused — let it handle typing normally
@@ -32,6 +33,7 @@ document.addEventListener("keyup", e => {
     wsRegistry.dispatch("core:keyup",gameState);
 });
 
+// -- Input handling: mouse (pointer lock + look + scroll) ------------------------
 // Pointer lock
 renderer.domElement.addEventListener("click", () => {
     renderer.domElement.requestPointerLock();

@@ -12,6 +12,11 @@ explicitly qualified and pass through untouched.
 """
 import math
 
+# -- Debug helper (not registered) ----------------------------------------------
+# These two functions are standalone test scratch-pads, not wired into register().
+# testclient_server dumps whatever the clients sent; testserver_client pushes a
+# marker string out to every client. Kept as reference for debugging the
+# send/receive buffer helpers.
 def testclient_server(gamestate,registry):
     for entry in gamestate.get_client_messages():
         print(entry)
@@ -19,6 +24,10 @@ def testclient_server(gamestate,registry):
 def testserver_client(gamestate,registry):
     gamestate.add_to_broadcast("testsend", "Sent from Server")
 
+# -- Connect handler --------------------------------------------------------------
+# Runs on the core:on_player_connect hook: gives a newly connected player its
+# default position/speed/look state, then delivers that state to the client as a
+# one-time init message.
 def onConnect(gamestate, registry):
     """Set up default position, speed, and yaw for a newly connected player."""
     newPlayerName = gamestate.get(["core:players", "newPlayerName"])
@@ -26,8 +35,14 @@ def onConnect(gamestate, registry):
     gamestate.initialize(["core:players", newPlayerName, "speed"], 8)
     gamestate.initialize(["core:players", newPlayerName, "yaw"], 0)
     gamestate.initialize(["core:players", newPlayerName, "pitch"], 0)
-    # gamestate.add_to_client_sync()
+    # Deliver the initialized player state to the just-connected client as a
+    # one-time init message (must run inside core:on_player_connect).
+    gamestate.add_to_client_sync("pos", gamestate.get(["core:players", newPlayerName, "pos"]))
 
+# -- Movement handler --------------------------------------------------------------
+# Runs on the core:tick_hook once per tick: reads each client's movement input
+# from the receive buffer, integrates it into that player's world position, and
+# stores the updated position back into game state.
 def updatePlayerPosition(gamestate, registry):
     """Process movement input from clients and update their world positions."""
     # The client sends this mod's movement data under the namespaced key
@@ -61,6 +76,9 @@ def updatePlayerPosition(gamestate, registry):
         # pos["yaw"]=yaw; pos["pitch"]=positionUpdateData["pitch"]
         gamestate.set(["core:players", data["playerName"], "pos"], pos)
 
+# -- Per-client display sync --------------------------------------------------------
+# Runs on the core:calculate_client_display hook: injects the current player's
+# position into the per-client sync payload so it can be sent back to that client.
 def sendPlayerPosData(gamestate, registry):
     """Inject the current player's position into the per-client sync payload."""
     player = gamestate.get(["core:per_client_sync", "player"])

@@ -140,14 +140,14 @@ function loadScriptSequential(srcList) {
     })), Promise.resolve());
 }
 
-// -- Globals used by later scripts ----------------------------------------------
+// -- Globals shared across scripts -----------------------------------------------
 // These stay as top-level let/const so later classic <script> tags can see
 // them as bare identifiers, same pattern as before.
-let socket;                       // assigned once the URL is resolved
-const wsRegistry = new Registry();
-const gameState = new GameState();
-let playerName="";
-let playerPassword="";
+let socket;                       // game socket, assigned once the URL is resolved
+const wsRegistry = new Registry(); // WebSocket op handler registry
+const gameState = new GameState(); // central client-side game state store
+let playerName = "";
+let playerPassword = "";
 
 // -- THREE.js Scene setup --------------------------------------------------------------
 const scene = new THREE.Scene();

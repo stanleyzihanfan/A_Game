@@ -1,9 +1,9 @@
 import traceback
 from server.game_state import GameState
 
-# Central WebSocket op handler registry
-# Replaces the wsDispatch dict in the original backend.py
-# Mods call register_handler() to add their own ops
+# -- Central op handler registry ------------------------------------------------
+# Replaces the wsDispatch dict in the original backend.py.
+# Mods call register_handler() to add their own ops.
 #
 # Namespacing:
 # The registry tracks an "active namespace" (set by the mod loader while a
@@ -15,7 +15,8 @@ from server.game_state import GameState
 # outside of mod loading, everything must be explicitly namespaced.
 class Registry:
     def __init__(self):
-        self._handlers = {"core:tick":{}}
+        # ops -> {handlerName: {"func": callable, "namespace": str|None}}
+        self._handlers = {"core:tick": {}}
         # Stack of active namespaces; top frames the mod currently loading.
         # None (or empty) means "not loading a mod" — no implicit namespace.
         self._namespace_stack = []
@@ -37,6 +38,9 @@ class Registry:
         """Return the active namespace, or None if not inside mod loading."""
         return self._namespace_stack[-1] if self._namespace_stack else None
 
+    # -- Name resolution ----------------------------------------------------------
+    # Internal helper that turns a mod's unqualified op/handler name into a
+    # fully-namespaced one at registration/retrieval time.
     def _resolve(self, name):
         """Prefix an unqualified name with the active namespace.
 
@@ -61,6 +65,10 @@ class Registry:
             )
         return f"{namespace}:{name}"
 
+    # -- Handler registration ------------------------------------------------------
+    # The main API mods use at load time to declare their handlers. Registers
+    # under an op, capturing the namespace active at registration so dispatch()
+    # can re-enter it later.
     def register_handler(self, op: str, func=None, name:str = None):
         """
         Register a handler
@@ -100,6 +108,9 @@ class Registry:
         self._handlers[op][handlerName]={"func":func,"namespace":handlerNamespace}
         print(f"    New handler {handlerName} registered under {op}.")
 
+    # -- Handler retrieval ----------------------------------------------------------
+    # Looks up a handler record (or a whole op's dict) by name. Shared helper
+    # used by get_handler and dispatch.
     def get_handler(self, op:str, name:str = None):
         """
         Get a handler
@@ -121,7 +132,9 @@ class Registry:
         #Return full dict under event hook(name not provided)
         return self._handlers.get(op)
 
-    #Dispatch a hook/handler
+    # -- Dispatch -------------------------------------------------------------------
+    # Runs every handler registered under an op, each inside the namespace it was
+    # registered under, passing the game state and registry to the handler.
     def dispatch(self, op: str, gameState:GameState):
         """
         Dispatch a hook/handler

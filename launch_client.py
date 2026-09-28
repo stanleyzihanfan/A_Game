@@ -7,10 +7,13 @@ via cloudflared so remote browsers can connect.
 import argparse, subprocess, threading, traceback, shutil, os
 from client import launcher
 
+# -- Argument parsing ----------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument("--tunnel", action="store_true", help="Expose client page via cloudflared tunnel")
 args = parser.parse_args()
 
+# -- Cloudflared discovery -------------------------------------------------------
+# Helper function to locate the cloudflared binary for tunneling.
 def find_cloudflared():
     candidates = [
         "/usr/local/bin/cloudflared",

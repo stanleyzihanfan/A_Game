@@ -14,7 +14,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--tunnel", action="store_true", help="Expose via cloudflared tunnel")
 args = parser.parse_args()
 
-#Helper function to locate cloudflared installation
+# -- Cloudflared discovery -------------------------------------------------------
+# Helper function to locate the cloudflared binary for tunneling.
 def find_cloudflared():
     """
     Search for cloudflared in common locations.

@@ -14,13 +14,15 @@ strings pass through untouched (they are hard-coded by design).
 """
 import os, json, importlib.util
 
-# -- Mod Loader ----------------------------------------------------------------
+# -- Mod loader ----------------------------------------------------------------
 # Scans the /mods directory, reads each manifest.json, and loads each mod's
 # backend_py in order, calling register(registry) on each one.
+# Note: below, MODS_DIR is the absolute path to the /mods folder at project root.
 
-# Absolute path to /mods folder at project root
 MODS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mods")
 
+# -- Namespace helpers -----------------------------------------------------------
+# Determines a mod's namespace from its manifest, with fallback + validation.
 def _get_namespace(manifest):
     """Return the mod's namespace with fallback and validation.
 
