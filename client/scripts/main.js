@@ -10,15 +10,13 @@ const SENSITIVITY = 0.002; // radians per pixel
 // Elements considered "the game screen" — keydown/keyup are only
 // processed for gameplay when one of these is focused. Everything else
 // (text inputs, future UI panels, etc.) passes keys through untouched.
-const whitelist = [document.body, renderer.domElement];
-function isGameFocused() {
-    const active = document.activeElement;
-    return whitelist.includes(active);
-}
+// isGameFocused() is renderer-specific, so it now lives in the scene_setup mod
+// and is exposed on `window` (it streams in AFTER this bootstrap script). We
+// resolve it lazily at runtime via window.isGameFocused.
 
 // -- Input handling: keyboard ---------------------------------------------------
 document.addEventListener("keydown", e => { 
-    if (!isGameFocused()) {
+    if (window.isGameFocused && !window.isGameFocused()) {
         return; // some other UI element is focused — let it handle typing normally
     }
     gameState.set(["core:keys",e.code],true,true);
@@ -26,7 +24,7 @@ document.addEventListener("keydown", e => {
     wsRegistry.dispatch("core:keydown",gameState);
 });
 document.addEventListener("keyup", e => { 
-    if (!isGameFocused()) {
+    if (window.isGameFocused && !window.isGameFocused()) {
         return;
     }
     gameState.set(["core:keys",e.code],false,true);
@@ -35,12 +33,14 @@ document.addEventListener("keyup", e => {
 
 // -- Input handling: mouse (pointer lock + look + scroll) ------------------------
 // Pointer lock
-renderer.domElement.addEventListener("click", () => {
-    renderer.domElement.requestPointerLock();
-});
+// The renderer's canvas is created by the scene_setup mod, which loads over the
+// WebSocket AFTER this bootstrap script. ensurePointerLock() is renderer-
+// specific, so it now lives in the scene_setup mod and is exposed on `window`;
+// the render loop calls it lazily via window.ensurePointerLock (which only
+// runs after the scene mod streams in, so the canvas exists by then).
 //Set camera look direction
 document.addEventListener("mousemove", e => {
-    if (document.pointerLockElement !== renderer.domElement) return;
+    if (!window.renderer || document.pointerLockElement !== window.renderer.domElement) return;
     let yaw=gameState.get(["core:playerData","yaw"]);
     let pitch=gameState.get(["core:playerData","pitch"]);
     yaw -= e.movementX * SENSITIVITY;
@@ -60,11 +60,8 @@ document.addEventListener("wheel", e => {
 });
 
 // -- Resize handler ------------------------------------------------------------
-window.addEventListener("resize", () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+// Owned by the scene_setup mod now (it owns the renderer and camera). No
+// duplicate handler here.
 
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
@@ -93,7 +90,12 @@ function loop() {
         // Clear receive buffer after processing
         gameState.set(["core:server_receive_buffer"], []);
     }
+    // Make sure the pointer-lock listener is attached once the scene mod's
+    // canvas exists (the scene mod loads right before mods_ready).
+    if (window.ensurePointerLock) window.ensurePointerLock();
     // Update camera and render frame
     wsRegistry.dispatch("core:update_camera", gameState);
-    renderer.render(scene, camera);
+    if (window.renderer && window.scene && window.camera) {
+        window.renderer.render(window.scene, window.camera);
+    }
 }

@@ -149,31 +149,12 @@ const gameState = new GameState(); // central client-side game state store
 let playerName = "";
 let playerPassword = "";
 
-// -- THREE.js Scene setup --------------------------------------------------------------
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-document.body.appendChild(renderer.domElement);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(5, 4, 10); // start position
-
-// -- Lighting -----------------------------------------------------------------
-const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-sun.position.set(10, 20, 10);
-sun.castShadow = true;
-scene.add(sun);
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-
-// -- Grid floor ---------------------------------------------------------------
-scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
-
-// -- Voxel definition ----------------------------------------------------------
-const voxelGeo = new THREE.BoxGeometry(1, 1, 1);
-const voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
-const edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
+// -- THREE.js scene setup was moved into the scene_setup mod --------------------
+// (mods/scene_setup/client.js). It owns the scene, renderer, camera, lighting,
+// grid floor, resize handler, and voxel geometry/materials. Those objects are
+// attached to `window` (scene, renderer, camera, voxelGeo, voxelMat, edgeMat)
+// so the mod's player_position / testmod client scripts can still reference them
+// as bare globals, and so main.js's render loop can use them at runtime.
 
 // -- Bootstrap: resolve URL, open socket, then load the rest in order ----------
 (async () => {
