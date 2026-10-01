@@ -57,3 +57,17 @@ function update_player_position(gameState) {
 }
 
 wsRegistry.register_handler("core:tick", update_player_position, "updatePlayerPos");
+
+function initialize_player_position(gameState){
+    for (const playerPosData of gameState.readServerMessages("pos")) {
+        camera.position.x = playerPosData["x"];
+        camera.position.y = playerPosData["y"];
+        camera.position.z = playerPosData["z"];
+        camera.rotation.y = playerPosData["yaw"];
+        camera.rotation.x = playerPosData["pitch"];
+        gameState.set(["core:playerData","yaw"],playerPosData["yaw"]);
+        gameState.set(["core:playerData","pitch"],playerPosData["pitch"]);
+    }
+}
+
+wsRegistry.register_handler("core:init", initialize_player_position, "initPlayerPos");

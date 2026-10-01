@@ -36,7 +36,7 @@ def onConnect(gamestate, registry):
     gamestate.initialize(["core:players", newPlayerName, "yaw"], 0)
     gamestate.initialize(["core:players", newPlayerName, "pitch"], 0)
     # Deliver the initialized player state to the just-connected client as a
-    # one-time init message (must run inside core:on_player_connect).
+    # one-time init message.
     gamestate.add_to_client_sync("pos", gamestate.get(["core:players", newPlayerName, "pos"]))
 
 # -- Movement handler --------------------------------------------------------------
