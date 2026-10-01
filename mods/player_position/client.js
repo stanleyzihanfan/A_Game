@@ -63,10 +63,19 @@ function initialize_player_position(gameState){
         camera.position.x = playerPosData["x"];
         camera.position.y = playerPosData["y"];
         camera.position.z = playerPosData["z"];
-        camera.rotation.y = playerPosData["yaw"];
-        camera.rotation.x = playerPosData["pitch"];
-        gameState.set(["core:playerData","yaw"],playerPosData["yaw"]);
-        gameState.set(["core:playerData","pitch"],playerPosData["pitch"]);
+        // Persist the look direction into player data so the first-person
+        // control state matches where the server thinks the player is facing.
+        // Guard against payloads that omit yaw/pitch so a malformed sync never
+        // zeroes out the camera.
+        if (typeof playerPosData["yaw"] === "number") {
+            gameState.set(["core:playerData","yaw"],playerPosData["yaw"]);
+            camera.rotation.y = playerPosData["yaw"];
+        }
+        if (typeof playerPosData["pitch"] === "number") {
+            gameState.set(["core:playerData","pitch"],playerPosData["pitch"]);
+            camera.rotation.x = playerPosData["pitch"];
+        }
+        camera.rotation.order = "YXZ";
     }
 }
 
