@@ -50,34 +50,30 @@ function initClient() {
 }
 
 function onModsReady() {
-    wsRegistry.register_handler("core:mods_ready");
-    wsRegistry.dispatch("core:mods_ready", gameState);
+    console.log(`Client loading complete`);
+    gameState.set(["core:initialized"],false,true);
     // -- Hand off WebSocket to gamestate ------------------------------
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
         //Route message to game state
         if (msg["op"]==="core:sync_with_client"){
-            if (gameState.exists(["server_receive_buffer"])){
-                let tmp=gameState.get(["server_receive_buffer"]);
-                tmp.push(msg["params"]);
-                gameState.set(["server_receive_buffer"],tmp);
+            if (gameState.exists(["core:server_receive_buffer"])){
+                let tmp=gameState.get(["core:server_receive_buffer"]);
+                tmp.push(msg["data"]);
+                gameState.set(["core:server_receive_buffer"],tmp);
             }else{
-                gameState.set(["server_receive_buffer"],[],true);
-                let tmp=gameState.get(["server_receive_buffer"]);
-                tmp.push(msg["params"]);
-                gameState.set(["server_receive_buffer"],tmp);
+                gameState.set(["core:server_receive_buffer"],[],true);
+                let tmp=gameState.get(["core:server_receive_buffer"]);
+                tmp.push(msg["data"]);
+                gameState.set(["core:server_receive_buffer"],tmp);
+            }
+            if (!gameState.get(["core:initialized"])){
+                wsRegistry.dispatch("core:init", gameState);
+                gameState.set(["core:initialized"],true);
             }
         }
-        // else{
-        //     serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
-        //     if (!gameState.exists(["server_receive_buffer",msg["op"]])){
-        //         gameState.set(["server_receive_buffer",msg["op"]],[]);
-        //         serverData=gameState.get(["server_receive_buffer",msg["op"]],false);
-        //     }
-        //     serverData.push(msg["params"]);
-        // }
     }
-    console.log(`Client loading complete`);
+    socket.send(encode({"op": "client_init_done", "params": []}));
     loop();
 }
 
@@ -95,10 +91,20 @@ function onSocketMessage(e) {
         return;
     }
     else if (msg["op"] === "load_mod_js") {
-        const [modID, src] = msg["params"];
+        // params: [modID, source, namespace] — namespace comes from the
+        // mod's manifest.json and auto-prefixes unqualified names/keys the
+        // script uses, mirroring the server-side mod loader.
+        const [modID, src, namespace] = msg["params"];
         try {
             console.log(`Loading frontend mod script: ${modID}`);
-            eval(src);
+            wsRegistry.pushNamespace(namespace);
+            gameState.pushNamespace(namespace);
+            try {
+                eval(src);
+            } finally {
+                wsRegistry.popNamespace();
+                gameState.popNamespace();
+            }
             console.log(`  ${modID} loaded OK`);
         } catch(err) {
             const div = document.getElementById("errorlog");

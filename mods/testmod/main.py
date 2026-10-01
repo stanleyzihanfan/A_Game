@@ -1,3 +1,4 @@
+# Test base game backend mod (currently deprecated — kept for reference)
 # Placeholder voxel world — a few cubes at fixed positions
 # Each entry is [x, y, z] in world space, 1 unit per voxel
 voxelAdd = [
@@ -13,4 +14,9 @@ def syncBlocks(params):
             {"op": "block_remove", "params": [voxelRemove]}]
 
 def register(registry):
-    registry.register_handler("testmod:syncBlocks", syncBlocks)
+    # Deprecated op registration — uncomment to bring testmod back.
+    # Under auto-namespacing this would register under "testmod:syncBlocks"
+    # (namespace comes from manifest.json), so the caller must use that
+    # fully-qualified form.
+    # registry.register_handler("syncBlocks", syncBlocks)
+    pass

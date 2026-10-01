@@ -1,9 +1,16 @@
+"""
+Client asset server.
+
+Serves the HTML frontend, static files (JS, CSS), and provides a separate
+WebSocket endpoint (/clientlog) for catching browser console output.
+"""
 import socket, os, threading, mimetypes, msgpack
 from flask import Flask, Response, jsonify
 from flask_cors import CORS
 from flask_sock import Sock
 from werkzeug.serving import make_server
 
+# -- Flask app & global state ----------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # project root
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +25,9 @@ active_log_connections_lock = threading.Lock()
 def decode(data):
     return msgpack.unpackb(data, raw=False)
 
+# -- Routes: frontend page & static assets ---------------------------------------
+# Serves the HTML page at "/" and every other file under the project root
+# (e.g. client/scripts/*.js, client/styles.css) via the catch-all route.
 @app.route("/")
 def index():
     with open(os.path.join(BASE_DIR, "client/frontend.html"), "r") as f:
@@ -36,6 +46,9 @@ def static_file(filename):
     with open(filepath, "r") as f:
         return Response(f.read(), mimetype=mimetype)
 
+# -- Routes: client log WebSocket -------------------------------------------------
+# Separate endpoint from the game server's WebSocket; the browser posts its
+# console logs here so they appear in the terminal that launched this server.
 @wSocket.route("/clientlog")
 def clientlog(ws):
     """Receives console.log/warn/error + window.onerror/onunhandledrejection
@@ -67,6 +80,8 @@ def clientlog(ws):
         with active_log_connections_lock:
             active_log_connections.discard(ws)
 
+# -- Port finder -----------------------------------------------------------------
+# Shared helper: find a free TCP port, incrementing until one is open.
 def find_port(start=8000):
     """Find open port for Flask server\n
     If current port isn't open, repeatedly increments port number by 1 until open port is found
@@ -82,9 +97,11 @@ def find_port(start=8000):
                 return port
             except OSError:
                 print(f"Port {port} already in use, trying {port+1} next")
-                #print()
                 port += 1
 
+# -- Server lifecycle -------------------------------------------------------------
+# start() runs the Flask server on a background thread; shutdown() closes any
+# open log sockets and stops Flask.
 def start():
     global flask_server
     port = find_port()

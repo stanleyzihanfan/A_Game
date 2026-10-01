@@ -1,0 +1,11 @@
+{
+    "modID": "connect_guard",
+    "namespace": "connect_guard",
+    "name": "Connection Guard",
+    "version": "0.1.0",
+    "description": "Owns the connect-acceptance logic: validates player name/password, creates first-login state, and rejects already-online or bad-password connections",
+    "author": "Eyeseminal",
+    "backend_py": "main.py",
+    "client_js": "",
+    "dependencies": []
+}

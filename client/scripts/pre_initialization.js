@@ -1,4 +1,7 @@
-//Error debug script
+// -- Pre-initialization bootstrap ----------------------------------------------
+// Sets up global error handlers, the client log WebSocket, the server
+// connection overlay, the THREE.js scene, and finally bootstraps the
+// game socket once the user submits server credentials.
 window.onerror = function(msg, src, line, col, err) {
     const div = document.getElementById("errorlog");
     if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
@@ -32,9 +35,7 @@ const LOG_QUEUE_MAX = 500;
 function initLogSocket() {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     logSocket = new WebSocket(`${proto}//${location.host}/clientlog`);
-    // console.log("init");
     logSocket.onopen = () => {
-        // console.log("ws open");
         logSocketReady = true;
         while (logQueue.length) {
             logSocket.send(logQueue.shift());
@@ -57,7 +58,6 @@ function sendClientLog(level, timestamp, args) {
         logSocket.send(payload);
     } else {
         logQueue.push(payload);
-        // if (logQueue.length > LOG_QUEUE_MAX) logQueue.shift(); // drop oldest if backed up
     }
 }
 
@@ -85,7 +85,6 @@ function getServerURL() {
 
         input.value = localStorage.getItem("serverURL") || "";
         nameInput.value = localStorage.getItem("playerName") || "";
-        //input.focus();
 
         function submit() {
             console.log("submit");
@@ -141,14 +140,14 @@ function loadScriptSequential(srcList) {
     })), Promise.resolve());
 }
 
-// -- Globals used by later scripts ----------------------------------------------
+// -- Globals shared across scripts -----------------------------------------------
 // These stay as top-level let/const so later classic <script> tags can see
 // them as bare identifiers, same pattern as before.
-let socket;                       // assigned once the URL is resolved
-const wsRegistry = new Registry();
-const gameState = new GameState();
-let playerName="";
-let playerPassword="";
+let socket;                       // game socket, assigned once the URL is resolved
+const wsRegistry = new Registry(); // WebSocket op handler registry
+const gameState = new GameState(); // central client-side game state store
+let playerName = "";
+let playerPassword = "";
 
 // -- THREE.js Scene setup --------------------------------------------------------------
 const scene = new THREE.Scene();
