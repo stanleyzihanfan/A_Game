@@ -1,0 +1,11 @@
+{
+    "modID": "scene_setup",
+    "namespace": "scene_setup",
+    "name": "Scene Setup",
+    "version": "0.1.0",
+    "description": "Owns the Three.js scene, renderer, camera, lighting, grid floor, and voxel geometry/materials. Sets up the render loop hook.",
+    "author": "Eyeseminal",
+    "backend_py": "",
+    "client_js": "client.js",
+    "dependencies": []
+}
