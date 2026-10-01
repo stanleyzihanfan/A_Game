@@ -71,11 +71,9 @@ def updatePlayerPosition(gamestate, registry):
         if positionUpdateData["up"]:      dy += dist
         if positionUpdateData["down"]:    dy -= dist
 
+        #Save player position & look direction data to be persistant in game state
         pos = gamestate.get(["core:players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
-        # Persist look direction alongside position so it survives to the next
-        # login — the init payload that initialize_player_position reads on
-        # relog must carry the player's real yaw/pitch, not the default 0/0.
         pos["yaw"] = yaw
         pos["pitch"] = positionUpdateData["pitch"]
         gamestate.set(["core:players", data["playerName"], "pos"], pos)
