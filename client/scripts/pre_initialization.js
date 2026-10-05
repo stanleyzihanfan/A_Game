@@ -173,6 +173,7 @@ let playerPassword = "";
     socket.binaryType = "arraybuffer";
     socket.onopen = onSocketOpen;
     socket.onmessage = onSocketMessage;
+    socket.onclose = onSocketClose;
 })().catch(err => {
     console.error("Bootstrap failed:", err);
     const div = document.getElementById("errorlog");

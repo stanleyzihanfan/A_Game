@@ -1,0 +1,11 @@
+{
+    "modID": "ui_demo",
+    "namespace": "ui_demo",
+    "name": "UI Demo",
+    "version": "0.1.0",
+    "description": "Demonstrates the client-side UI registry: registers a namespaced HUD panel, a UI event handler, and a per-tick view update via the core:tick hook",
+    "author": "Eyeseminal",
+    "backend_py": "",
+    "client_js": "client.js",
+    "dependencies": []
+}

@@ -160,6 +160,9 @@ class Registry {
                     if (gameState && typeof gameState.pushNamespace === "function") {
                         gameState.pushNamespace(namespace);
                     }
+                    if (typeof uiRegistry !== "undefined" && uiRegistry && typeof uiRegistry.pushNamespace === "function") {
+                        uiRegistry.pushNamespace(namespace);
+                    }
                 }
                 try{
                     func(gameState, this);
@@ -173,6 +176,9 @@ class Registry {
                         this.popNamespace();
                         if (gameState && typeof gameState.popNamespace === "function") {
                             gameState.popNamespace();
+                        }
+                        if (typeof uiRegistry !== "undefined" && uiRegistry && typeof uiRegistry.popNamespace === "function") {
+                            uiRegistry.popNamespace();
                         }
                     }
                 }

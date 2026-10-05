@@ -62,3 +62,55 @@ canvas { display: block; }
     overflow-y:auto;
     white-space:pre-wrap;
 }
+
+/* -- UI mount point (client mods attach views here via uiRegistry) -------------
+   Sits above the renderer but below the connect overlay, so it is visible in
+   gameplay and hidden behind the login screen. */
+#ui-root {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;   /* let clicks fall through to the canvas/overlay */
+    z-index: 100;           /* above canvas (auto), below connect overlay (1000) */
+}
+#ui-root > * {
+    pointer-events: auto;   /* interactive UI re-enables pointer events */
+}
+
+/* -- Reusable UI building blocks ----------------------------------------------
+   Mods can use these classes in their view builders, or override them with
+   their own uiRegistry.register_style() rules. */
+
+.ui-panel {
+    position: absolute;
+    background: rgba(10, 10, 14, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #eee;
+    font: 13px monospace;
+    text-shadow: 1px 1px 2px black;
+    min-width: 160px;
+}
+.ui-panel-title {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #ffd27d;
+}
+.ui-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+.ui-btn {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #2a6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font: 13px monospace;
+}
+.ui-btn:hover { background: #3b7; }
+.ui-btn--danger { background: #a33; }
+.ui-btn--danger:hover { background: #c44; }

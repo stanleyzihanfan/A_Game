@@ -11,6 +11,11 @@
 <div id="debug">Speed: 8</div>
 <div id="errorlog"></div>
 
+<!-- UI mount point. Client mods register views against uiRegistry and mount
+     them here by default. It sits above the renderer and below the connect
+     overlay, so it is visible during gameplay but hidden behind the login. -->
+<div id="ui-root"></div>
+
 <!-- Server connect overlay: replaces window.prompt, works in any webview -->
 <div id="server-connect-overlay">
     <div id="server-connect-box">
@@ -35,6 +40,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.26/msgpack.min.js"></script>
 <script src="client/scripts/game_state.js"></script>
 <script src="client/scripts/client_ws_registry.js"></script>
+<script src="client/scripts/ui.js"></script>
 <!--Pre Initialization Script-->
 <script src="client/scripts/pre_initialization.js"></script>
 

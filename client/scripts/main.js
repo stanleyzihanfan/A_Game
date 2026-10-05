@@ -16,7 +16,11 @@ const SENSITIVITY = 0.002; // radians per pixel
 
 // -- Input handling: keyboard ---------------------------------------------------
 document.addEventListener("keydown", e => { 
-    if (window.isGameFocused && !window.isGameFocused()) {
+    // Pass the event through (don't capture/preventDefault) when the scene
+    // mod hasn't loaded yet (window.isGameFocused undefined, e.g. login
+    // screen) OR the focused element is not the game screen (e.g. a text
+    // input). Only then do we treat it as gameplay input.
+    if (!window.isGameFocused || !window.isGameFocused()) {
         return; // some other UI element is focused — let it handle typing normally
     }
     gameState.set(["core:keys",e.code],true,true);
@@ -24,7 +28,7 @@ document.addEventListener("keydown", e => {
     wsRegistry.dispatch("core:keydown",gameState);
 });
 document.addEventListener("keyup", e => { 
-    if (window.isGameFocused && !window.isGameFocused()) {
+    if (!window.isGameFocused || !window.isGameFocused()) {
         return;
     }
     gameState.set(["core:keys",e.code],false,true);
