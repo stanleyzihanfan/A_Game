@@ -5,3 +5,4 @@ __pycache__/
 .Python
 .venv-docs/
 site/
+agents.md
