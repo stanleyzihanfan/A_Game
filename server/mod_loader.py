@@ -76,6 +76,16 @@ def load_mods(registry, game_state=None):
         with open(manifest_path, "r") as f:
             manifest = json.load(f)
         manifest["_mod_path"] = mod_path  # stash path for later use
+
+        # -- Disabled check ----------------------------------------------------
+        # A mod can be turned "off" (not imported, not registered, and its
+        # client.js not streamed) while keeping its files and code intact, by
+        # setting "enabled": false in its manifest.json. Default is enabled so
+        # existing mods without the field keep loading unchanged.
+        if not manifest.get("enabled", True):
+            print(f"\x1b[33mMod '{mod_folder}' is disabled in manifest, skipping\033[0m")
+            continue
+
         try:
             manifest["_namespace"] = _get_namespace(manifest)
         except ValueError as e:
@@ -100,7 +110,11 @@ def load_mods(registry, game_state=None):
         if game_state is not None:
             game_state.push_namespace(namespace)
         try:
-            # backend_py is nullable — frontend-only mods skip this
+            # backend_py is nullable — client-side-only mods skip this.
+            # No backend_py in the manifest (absent or empty) means the mod is
+            # client-side only, so there is nothing to register server-side and
+            # no warning should be emitted (mirrors the silent client_js skip
+            # in core._send_mod_scripts for server-side-only mods).
             if backend_py:
                 py_path = os.path.join(mod_path, backend_py)
                 if not os.path.isfile(py_path):
@@ -118,8 +132,7 @@ def load_mods(registry, game_state=None):
                     else:
                         module.register(registry)
                     print(f"  Backend registered: {backend_py}")
-            else:
-                print(f"\x1b[33m  main.py '{backend_py}' not registered in registry for mod '{modID}', skipping\033[0m")
+            # else: no backend_py — mod is client-side only, skip silently.
 
             loaded.append(manifest)
             print(f"  Loaded OK")

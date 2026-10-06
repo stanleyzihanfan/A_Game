@@ -73,9 +73,14 @@ def _send_mod_scripts(ws):
     for manifest in loaded_mods:
         client_js = manifest.get("client_js")
         if not client_js:
+            # No client_js in the manifest (absent or empty) means the mod is
+            # server-side only, so there is nothing to stream and no warning
+            # should be emitted (mirrors the silent backend_py skip for
+            # client-side-only mods in mod_loader.load_mods).
             continue
         js_path = os.path.join(manifest["_mod_path"], client_js)
         if not os.path.isfile(js_path):
+            print(f"\x1b[33m  client.js '{client_js}' not found for mod '{manifest['modID']}'\033[0m")
             continue
         with open(js_path, "r") as f:
             src = f.read()
