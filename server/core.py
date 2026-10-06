@@ -239,7 +239,7 @@ def start_tick(interval):
 
                 # -- Step 1: dispatch tick handlers (mod world/state logic) ----
                 with game_state._lock:
-                    registry.dispatch("core:tick_hook", game_state)
+                    registry.dispatch("core:tick", game_state)
 
                 # -- Step 2: send global broadcast data to every client -------
                 with game_state._lock:

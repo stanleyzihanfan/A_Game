@@ -40,7 +40,7 @@ def onConnect(gamestate, registry):
     gamestate.add_to_client_sync("pos", gamestate.get(["core:players", newPlayerName, "pos"]))
 
 # -- Movement handler --------------------------------------------------------------
-# Runs on the core:tick_hook once per tick: reads each client's movement input
+# Runs on the core:tick hook once per tick: reads each client's movement input
 # from the receive buffer, integrates it into that player's world position, and
 # stores the updated position back into game state.
 def updatePlayerPosition(gamestate, registry):
@@ -89,5 +89,5 @@ def sendPlayerPosData(gamestate, registry):
 
 def register(registry):
     registry.register_handler("core:on_player_connect", onConnect, "initialize-player-state")
-    registry.register_handler("core:tick_hook", updatePlayerPosition, "update-player-pos")
+    registry.register_handler("core:tick", updatePlayerPosition, "update-player-pos")
     registry.register_handler("core:calculate_client_display", sendPlayerPosData, "send-player-pos-data")

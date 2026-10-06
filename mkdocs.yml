@@ -1,0 +1,65 @@
+site_name: A-Game Modding API Reference
+site_description: Reference for everything a mod can access in A-Game — server and client APIs, event hooks, and the wire protocol.
+site_author: A-Game
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.keys
+
+plugins:
+  - search:
+      lang: en
+
+nav:
+  - Home: README.md
+  - Concepts: concepts.md
+  - Manifest: manifest.md
+  - Server API:
+      - Registry: server_registry.md
+      - GameState: server_game_state.md
+  - Client API:
+      - wsRegistry: client_ws_registry.md
+      - GameState: client_game_state.md
+      - uiRegistry: client_ui_registry.md
+  - Event Hooks: hooks.md
+  - Wire Protocol: wire_protocol.md

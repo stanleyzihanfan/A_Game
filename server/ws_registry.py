@@ -44,7 +44,7 @@ class Registry:
     def _resolve(self, name):
         """Prefix an unqualified name with the active namespace.
 
-        Strings that already contain ":" (e.g. "core:tick_hook") are returned
+        Strings that already contain ":" (e.g. "core:tick") are returned
         unchanged. Qualified strings with a foreign namespace are also kept
         as-is — cross-namespace references are allowed, the registry does not
         police who may listen to whose ops.
@@ -81,7 +81,7 @@ class Registry:
         even when dispatched long after loading.
 
         :param op: Name of event hook
-        :param funct: Function object of handler
+        :param func: Function object of handler
         :param name: Name of handler function
         """
         handlerName=name
