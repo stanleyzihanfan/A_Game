@@ -85,7 +85,8 @@ def sendPlayerPosData(gamestate, registry):
     """Inject the current player's position into the per-client sync payload."""
     player = gamestate.get(["core:per_client_sync", "player"])
     pos = gamestate.get(["core:players", player, "pos"])
-    gamestate.add_to_client_sync("pos", pos)
+    
+    gamestate.add_to_client_sync("grid_pos", pos)
 
 def register(registry):
     registry.register_handler("core:on_player_connect", onConnect, "initialize-player-state")

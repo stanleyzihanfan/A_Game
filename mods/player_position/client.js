@@ -47,12 +47,14 @@ wsRegistry.register_handler("core:tick", update_player_move_data, "updatePlayerM
 
 // Apply authoritative position data sent back from the server
 function update_player_position(gameState) {
-    for (const playerposdata of gameState.readServerMessages("pos")) {
-        camera.position.x = playerposdata["x"];
-        camera.position.y = playerposdata["y"];
-        camera.position.z = playerposdata["z"];
-        // gameState.set(["core:playerData","yaw"],playerposdata["yaw"]);
-        // gameState.set(["core:playerData","pitch"],playerposdata["pitch"]);
+    for (const playerposdata of gameState.readServerMessages("grid_pos")) {
+        const grid=window.scene.getObjectByName("gridFloor");
+        grid.position.x=-playerposdata["x"];
+        grid.position.y=-playerposdata["y"];
+        grid.position.z=-playerposdata["z"];
+        // camera.position.x = playerposdata["x"];
+        // camera.position.y = playerposdata["y"];
+        // camera.position.z = playerposdata["z"];
     }
 }
 
@@ -60,9 +62,9 @@ wsRegistry.register_handler("core:tick", update_player_position, "updatePlayerPo
 
 function initialize_player_position(gameState){
     for (const playerPosData of gameState.readServerMessages("pos")) {
-        camera.position.x = playerPosData["x"];
-        camera.position.y = playerPosData["y"];
-        camera.position.z = playerPosData["z"];
+        camera.position.x = 0;
+        camera.position.y = 0;
+        camera.position.z = 0;
         // Persist the look direction into player data so the first-person
         // control state matches where the server thinks the player is facing.
         // Guard against payloads that omit yaw/pitch so a malformed sync never

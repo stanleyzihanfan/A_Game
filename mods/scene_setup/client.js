@@ -44,12 +44,17 @@ window.scene.add(sun);
 window.scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
 // -- Grid floor ----------------------------------------------------------------
-window.scene.add(new THREE.GridHelper(40, 40, 0x444444, 0x222222));
+const grid=new THREE.GridHelper(40,40,0x444444, 0x222222);
+grid.name="gridFloor";
+window.scene.add(grid);
 
 // -- Voxel definition ----------------------------------------------------------
 window.voxelGeo = new THREE.BoxGeometry(1, 1, 1);
 window.voxelMat = new THREE.MeshLambertMaterial({ color: 0x4a90d9 });
 window.edgeMat  = new THREE.LineBasicMaterial({ color: 0x1a3a5c });
+const voxelTest=new THREE.Mesh(voxelGeo,voxelMat);
+voxelTest.position.set(2,2,0);
+window.scene.add(voxelTest);
 
 // -- Renderer-scoped helpers ---------------------------------------------------
 // These two used to live in client/scripts/main.js, but they are renderer-
