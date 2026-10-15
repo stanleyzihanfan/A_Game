@@ -7,5 +7,6 @@
     "author": "Eyeseminal",
     "backend_py": "main.py",
     "client_js": "client.js",
-    "dependencies": []
+    "dependencies": [],
+    "incompatibilities": []
 }

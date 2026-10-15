@@ -8,7 +8,13 @@ the rest of the reference much easier to read.
 
 A mod is a folder under `mods/` containing a `manifest.json`. The loader
 (`server/mod_loader.py`) scans the directory, reads each manifest, and loads
-the mod in alphabetical order by `modID`. Each mod may contribute:
+the mods in **topological order by `dependencies`** — mods with no dependencies
+load alphabetically by `modID`, and every dependency loads before the mod that
+depends on it. A dependency may also carry an optional **version spec** (e.g.
+`"scene_setup>=0.2.0"`), and a mod may declare an **`incompatibilities`** list of
+mods it refuses to run alongside; a detected incompatibility is fatal and stops
+the server. See [Manifest](manifest.md) for the full field reference. Each mod
+may contribute:
 
 - **Backend logic** — a Python file (default `main.py`) that exposes
   `def register(registry)`. Runs on the **server**.
