@@ -40,6 +40,8 @@ def _get_namespace(manifest):
     :param manifest: The mod's manifest dict
     :return: Namespace string
     """
+    if not manifest.get("modID"):
+        raise ValueError("Manifest has no 'modID'; cannot determine namespace")
     namespace = manifest.get("namespace") or manifest["modID"]
     if namespace == "core":
         raise ValueError(f"Mod '{manifest['modID']}' declares namespace 'core', which is reserved for the game engine")
@@ -49,117 +51,311 @@ def _get_namespace(manifest):
 
 
 # -- Version handling ------------------------------------------------------------
-# Self-contained PEP-440-lite version parsing and specifier matching, so the mod
-# loader can satisfy "dependencies": ["mod>=1.2"] and incompatibility version
-# gates without pulling in the third-party `packaging` library (which is not
-# installed in the server runtime).
+# Version comparison is pluggable per-mod. A "version scheme" (identified by a
+# string, stored in a mod's manifest as "version_scheme") knows how to turn a
+# version string into a sortable, comparable key, and optionally how to match a
+# specifier against a version when the operators alone aren't enough.
+#
+# The scheme used to evaluate a dependency/incompatibility constraint is the
+# TARGET mod's scheme (the dependency's), not the declaring mod's. That mirrors
+# Minecraft modding, where the version convention belongs to the mod being
+# depended on (e.g. a snapshot '24w13a' or a loader-prefixed 'forge-45.2.0').
+#
+# Built-ins:
+#   - 'pep440' (default): dotted numeric releases, optional pre-release suffix,
+#     build metadata ignored. Handles '1.20.1', '1.20.1-pre1', '0.92.0+1.20.4'.
+#   - 'mc': Minecraft-flavoured. All of the above, plus year-week snapshots
+#     ('24w13a', '25w02a'), a leading 'v' ('v1.20.1'), loader prefixes
+#     ('forge-45.2.0', 'fabric-0.92.0+1.20.4'), combined MC+loader versions
+#     ('1.20.4-0.92.0'), and Maven-style ranges ('[1.20.1,1.21)', '(,1.21]').
+#
+# Custom: a mod may set "version_scheme" to a name registered at runtime, or
+# point at a file that provides its own scheme class (see _resolve_scheme).
 
 
-def _version_tuple(v):
-    """Parse a version string into a sortable, comparable tuple.
+class _PEP440Scheme:
+    """PEP-440-lite version parsing/specifier matching (the default scheme)."""
 
-    Supports dotted numeric releases and an optional pre-release suffix (e.g.
-    '1.2.3-beta.1'). Build metadata after '+' is ignored. Missing components are
-    treated as 0, so '1.2' == '1.2.0'. A pre-release sorts BEFORE its final
-    release, so 1.0.0-beta < 1.0.0.
+    name = "pep440"
 
-    :param v: version string
-    :return: (release_tuple_3, pre_release_flag, pre_suffix)
-    :raises ValueError: If the version cannot be parsed
-    """
-    v = str(v).strip().split("+", 1)[0]
-    m = re.match(r"^(\d+(?:\.\d+)*)(?:[-.]([A-Za-z][A-Za-z0-9]*))?$", v)
-    if not m:
-        raise ValueError(f"Unrecognized version string: {v!r}")
-    release = tuple(int(x) for x in m.group(1).split("."))
-    while len(release) < 3:
-        release += (0,)
-    pre = m.group(2)
-    return (release, 1 if pre is None else 0, pre or "")
+    @staticmethod
+    def parse(v):
+        """Return a sortable, comparable key for `v`.
 
+        Supports dotted numeric releases and an optional pre-release suffix
+        (e.g. '1.2.3-beta.1'). Build metadata after '+' is ignored. Missing
+        components are treated as 0, so '1.2' == '1.2.0'. A pre-release sorts
+        BEFORE its final release, so 1.0.0-beta < 1.0.0.
 
-def _release_with_count(v):
-    """Return (release_tuple_3, segment_count) for a version string.
+        :param v: version string
+        :return: (release_tuple_3, pre_release_flag, pre_suffix)
+        :raises ValueError: If the version cannot be parsed
+        """
+        v = str(v).strip().split("+", 1)[0]
+        m = re.match(r"^(\d+(?:\.\d+)*)(?:[-.]([A-Za-z][A-Za-z0-9]*))?$", v)
+        if not m:
+            raise ValueError(f"Unrecognized version string: {v!r}")
+        release = tuple(int(x) for x in m.group(1).split("."))
+        while len(release) < 3:
+            release += (0,)
+        pre = m.group(2)
+        return (release, 1 if pre is None else 0, pre or "")
 
-    segment_count is how many dotted numeric segments the release actually had
-    before padding (needed for the '~=' compatible-release upper bound).
+    @staticmethod
+    def release_with_count(v):
+        """Return (release_tuple_3, segment_count) for the '~=' upper bound."""
+        v = str(v).strip().split("+", 1)[0]
+        m = re.match(r"^(\d+(?:\.\d+)*)", v)
+        if not m:
+            raise ValueError(f"Unrecognized version string: {v!r}")
+        nums = [int(x) for x in m.group(1).split(".")]
+        count = len(nums)
+        while len(nums) < 3:
+            nums.append(0)
+        return (tuple(nums), count)
 
-    :raises ValueError: If the version cannot be parsed
-    """
-    v = str(v).strip().split("+", 1)[0]
-    m = re.match(r"^(\d+(?:\.\d+)*)", v)
-    if not m:
-        raise ValueError(f"Unrecognized version string: {v!r}")
-    nums = [int(x) for x in m.group(1).split(".")]
-    count = len(nums)
-    while len(nums) < 3:
-        nums.append(0)
-    return (tuple(nums), count)
+    @classmethod
+    def compatible_release(cls, base_spec, version):
+        """PEP-440 '~=' (compatible release): >=X.Y.Z and <X.(Y+1).0"""
+        base, count = cls.release_with_count(base_spec)
+        target, _ = cls.release_with_count(version)
+        if target < base:
+            return False
+        if count == 1:
+            upper = (base[0] + 1, 0, 0)
+        else:
+            upper_list = list(base[:count - 1])
+            upper_list[-1] += 1
+            upper = (tuple(upper_list) + (0, 0, 0))[:3]
+        return target < upper
 
-
-def _compatible_release(base_spec, version):
-    """Check PEP-440 '~=' (compatible release) semantics.
-
-    ~=X.Y.Z means >=X.Y.Z and <X.(Y+1).0 ; ~=X.Y means >=X.Y and <(X+1).0 ;
-    ~=X means >=X and <(X+1).0.
-    """
-    base, count = _release_with_count(base_spec)
-    target, _ = _release_with_count(version)
-    if target < base:
-        return False
-    if count == 1:
-        upper = (base[0] + 1, 0, 0)
-    else:
-        upper_list = list(base[:count - 1])
-        upper_list[-1] += 1
-        upper = (tuple(upper_list) + (0, 0, 0))[:3]
-    return target < upper
-
-
-def _matches_specifier(spec, version):
-    """Return True if `version` satisfies the single specifier clause `spec`."""
-    spec = spec.strip()
-    if not spec or spec == "*":
-        return True
-    m = re.match(r"^(==|!=|>=|<=|>|<|~=)?\s*(.+)$", spec)
-    if not m:
-        raise ValueError(f"Unrecognized version specifier: {spec!r}")
-    op = m.group(1) or "=="
-    base = m.group(2).strip()
-    try:
-        v = _version_tuple(version)
-        b = _version_tuple(base)
-    except ValueError:
-        return False
-    if op == "==":
-        return v == b
-    if op == "!=":
-        return v != b
-    if op == ">":
-        return v > b
-    if op == "<":
-        return v < b
-    if op == ">=":
-        return v >= b
-    if op == "<=":
-        return v <= b
-    if op == "~=":
+    @classmethod
+    def matches_specifier(cls, spec, version):
+        """Return True if `version` satisfies the single clause `spec`."""
+        spec = spec.strip()
+        if not spec or spec == "*":
+            return True
+        m = re.match(r"^(==|!=|>=|<=|>|<|~=)?\s*(.+)$", spec)
+        if not m:
+            raise ValueError(f"Unrecognized version specifier: {spec!r}")
+        op = m.group(1) or "=="
+        base = m.group(2).strip()
         try:
-            return _compatible_release(base, version)
+            v = cls.parse(version)
+            b = cls.parse(base)
         except ValueError:
             return False
-    return False
+        if op == "==":
+            return v == b
+        if op == "!=":
+            return v != b
+        if op == ">":
+            return v > b
+        if op == "<":
+            return v < b
+        if op == ">=":
+            return v >= b
+        if op == "<=":
+            return v <= b
+        if op == "~=":
+            try:
+                return cls.compatible_release(base, version)
+            except ValueError:
+                return False
+        return False
 
 
-def _version_matches(spec, version):
-    """Return True if `version` satisfies a version spec.
+class _MinecraftScheme(_PEP440Scheme):
+    """Minecraft-flavoured version scheme.
 
-    Spec may be a single operator clause ('>=0.2.0'), a bare version ('0.2.0',
-    treated as ==), or a comma-separated AND of clauses ('>=0.2.0,<1.0'). A
-    blank/None spec matches anything.
+    Accepts everything PEP-440-lite does, plus the conventions common in the
+    Minecraft modding ecosystem:
+      - year-week snapshots: '24w13a', '25w02a' (ordered by year, then week,
+        then the trailing letter a/b/c ...)
+      - a leading 'v': 'v1.20.1'
+      - loader prefixes: 'forge-45.2.0', 'fabric-0.92.0+1.20.4'
+      - combined MC+loader versions: '1.20.4-0.92.0'
+      - Maven-style version ranges as a specifier: '[1.20.1,1.21)', '(,1.21]'
+    """
 
-    :param spec: version spec string or None
+    name = "mc"
+
+    @classmethod
+    def parse(cls, v):
+        v = str(v).strip().split("+", 1)[0]
+        # Strip a leading 'v' (case-insensitive).
+        s = v.lstrip("vV")
+        # Remove a leading loader prefix (e.g. 'forge-', 'fabric-'); if after
+        # removing it the remainder is a dotted numeric or snapshot, use it.
+        m = re.match(r"^[A-Za-z][A-Za-z0-9]*-", s)
+        if m:
+            rest = s[m.end():]
+            if not re.match(r"^\d{2}w\d{2}[a-z]?$", rest):
+                s = rest
+        # Minecraft snapshot: YYwWWx (e.g. '24w13a'). A two-digit year >= 20 maps
+        # to 20xx, so '24w13a' -> (2024, 13, snap-'a').
+        ms = re.match(r"^(\d{2})w(\d{2})([a-z]?)$", s)
+        if ms:
+            yy = int(ms.group(1))
+            year = yy + 2000 if yy >= 20 else yy
+            return ((year, int(ms.group(2)), 0), 0, "snap" + ms.group(3))
+        # Otherwise: keep the FIRST dotted numeric group as the release. A
+        # combined version like '1.20.4-0.92.0' (MC + loader) thus sorts with
+        # '1.20.4'; a letter-suffixed pre-release like '1.20.1-pre1' keeps the
+        # suffix so PEP-440 pre-release ordering still applies.
+        pm = re.match(r"^(\d+(?:\.\d+)*)", s)
+        if not pm:
+            # Didn't even start with a number — fall through to PEP-440 (which
+            # will raise a clear "unrecognized" error that the caller treats as
+            # an unsatisfied gate).
+            return super().parse(s)
+        primary = pm.group(1)
+        trailing = s[pm.end():]
+        if trailing:
+            # Only treat it as a pre-release if the suffix starts with a letter
+            # (e.g. '-pre1', '-rc1', '-alpha', '.beta'). A trailing dotted
+            # numeric (a secondary/loader version) is dropped.
+            if re.match(r"^[.\-][A-Za-z]", trailing):
+                return super().parse(s)
+            s = primary
+        return super().parse(s)
+
+    @classmethod
+    def matches_specifier(cls, spec, version):
+        """Match a clause, additionally supporting Maven-style ranges.
+
+        A clause may be a PEP-440 operator ('>=1.20.1'), a bare version, or a
+        Maven-style interval: '[a,b]', '(a,b)', '[a,b)', '(,b]', '[a,)'. A
+        bracket is inclusive, a paren is exclusive; a missing edge is unbounded.
+        """
+        spec = spec.strip()
+        if not spec or spec == "*":
+            return True
+        if spec[0] in "[(" and spec[-1] in ")]":
+            return cls._match_interval(spec, version)
+        return super().matches_specifier(spec, version)
+
+    @classmethod
+    def _match_interval(cls, spec, version):
+        low_inc = spec[0] == "["
+        high_inc = spec[-1] == "]"
+        body = spec[1:-1]
+        parts = body.split(",", 1)
+        if len(parts) == 1:
+            # '[1.20.1]' -- exact
+            low = parts[0].strip()
+            high = low
+            return cls._version_gt(version, low, low_inc) and cls._version_gt(high, version, high_inc)
+        low, high = parts[0].strip(), parts[1].strip()
+        if low and not cls._version_gt(version, low, low_inc):
+            return False
+        if high and not cls._version_gt(high, version, high_inc):
+            return False
+        return True
+
+    @classmethod
+    def _version_gt(cls, a, b, inclusive):
+        """Return True if a is >= b (inclusive) or > b (exclusive)."""
+        try:
+            ka, kb = cls.parse(a), cls.parse(b)
+        except ValueError:
+            return False
+        if ka == kb:
+            return inclusive
+        return ka > kb
+
+
+# -- Scheme registry --------------------------------------------------------------
+# name -> scheme class. A scheme is any object exposing:
+#   parse(v) -> comparable key (raises ValueError on unparseable)
+#   matches_specifier(spec, version) -> bool
+# Built-ins registered here; custom schemes can be added at runtime via
+# register_version_scheme() (from a mod's own code).
+
+
+_VERSION_SCHEMES = {
+    "pep440": _PEP440Scheme,
+    "mc": _MinecraftScheme,
+}
+
+
+def register_version_scheme(name, scheme_class):
+    """Register a custom version scheme for use in manifests.
+
+    :param name: The scheme identifier mods will put in 'version_scheme'
+    :param scheme_class: An object exposing parse(v) and matches_specifier(s, v)
+    """
+    _VERSION_SCHEMES[name] = scheme_class
+
+
+def _get_scheme(name):
+    """Look up a scheme by name; unknown names fall back to the default.
+
+    :param name: Scheme identifier (or None)
+    :return: scheme class
+    """
+    if name is None:
+        return _PEP440Scheme
+    return _VERSION_SCHEMES.get(name, _PEP440Scheme)
+
+
+def _resolve_scheme(manifest, mods_dir=MODS_DIR):
+    """Resolve the version scheme a mod uses, from its manifest.
+
+    The "version_scheme" field can be:
+      - a built-in/registered scheme name (e.g. "pep440", "mc"); or
+      - a path to a Python file defining a scheme, relative to the mod folder
+        (e.g. "version_scheme.py"). The file must expose a module-level
+        `scheme` object with `parse(v)` and `matches_specifier(s, v)`, or a
+        `version_scheme`/`register(registry)`? No -- just a `scheme` object.
+
+    An unknown scheme name, or a custom file that fails to load, falls back to
+    the default PEP-440 scheme with a warning, so a bad scheme never crashes
+    the load (though it may cause version gates to behave conservatively).
+
+    :param manifest: The mod's manifest dict
+    :param mods_dir: Absolute path to the mods directory (for relative file paths)
+    :return: scheme class
+    """
+    raw = manifest.get("version_scheme")
+    if not raw:
+        return _PEP440Scheme
+    # If it looks like a file path (has .py or a slash), load it as a custom scheme.
+    if isinstance(raw, str) and (raw.endswith(".py") or "/" in raw or "\\" in raw):
+        base = manifest.get("_mod_path") or mods_dir
+        scheme_file = raw if os.path.isabs(raw) else os.path.join(base, raw)
+        if os.path.isfile(scheme_file):
+            try:
+                spec = importlib.util.spec_from_file_location(f"mod_{manifest['modID']}_scheme", scheme_file)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                scheme = getattr(module, "scheme", None) or getattr(module, "version_scheme", None)
+                if scheme is None:
+                    print(f"\x1b[33m  Mod '{manifest['modID']}' version_scheme file '{raw}' has no 'scheme' object, using default\033[0m")
+                    return _PEP440Scheme
+                return scheme
+            except Exception as e:
+                print(f"\x1b[33m  Mod '{manifest['modID']}' version_scheme file '{raw}' failed to load ({e}), using default\033[0m")
+                return _PEP440Scheme
+        print(f"\x1b[33m  Mod '{manifest['modID']}' version_scheme file '{raw}' not found, using default\033[0m")
+        return _PEP440Scheme
+    # Otherwise treat it as a scheme name.
+    if raw not in _VERSION_SCHEMES:
+        print(f"\x1b[33m  Mod '{manifest['modID']}' has unknown version_scheme '{raw}', using default\033[0m")
+        return _PEP440Scheme
+    return _VERSION_SCHEMES[raw]
+
+
+def _version_matches(spec, version, scheme=None):
+    """Return True if `version` satisfies `spec` under the given scheme class.
+
+    If the scheme cannot parse `version` (or the spec), the constraint is treated
+    as NOT satisfied (returns False) -- the caller then warns and blocks the
+    dependent mod, rather than guessing. This is the "warn + block" fail mode.
+
+    :param spec: version spec string or None (None matches anything)
     :param version: installed version string
+    :param scheme: a version scheme class (defaults to the PEP-440 scheme)
     :return: bool
     """
     if spec is None:
@@ -167,13 +363,17 @@ def _version_matches(spec, version):
     spec = str(spec).strip()
     if not spec or spec == "*":
         return True
+    scheme = scheme or _PEP440Scheme
     for clause in spec.split(","):
         clause = clause.strip()
-        if clause and not _matches_specifier(clause, version):
-            return False
+        if clause:
+            try:
+                if not scheme.matches_specifier(clause, version):
+                    return False
+            except ValueError:
+                # Unparseable under this scheme -> cannot prove satisfaction.
+                return False
     return True
-
-
 # -- Dependency / incompatibility entry parsing ---------------------------------
 # A dependency or incompatibility entry may be either:
 #   - a plain string: 'player_position' (no version), or 'scene_setup>=0.2.0'
@@ -350,6 +550,13 @@ def _load_order(manifests):
         modID: str(manifests[modID].get("version", "0.0.0") or "0.0.0")
         for modID in manifests
     }
+    # Resolve each mod's version scheme once. The scheme used to evaluate a
+    # dependency's version gate is the DEPENDENCY's scheme (the convention the
+    # dependency's version strings follow), not the declaring mod's.
+    schemes = {
+        modID: _resolve_scheme(manifests[modID])
+        for modID in manifests
+    }
     loadable = set(manifests.keys())
     changed = True
     while changed:
@@ -360,7 +567,7 @@ def _load_order(manifests):
                 dep_spec = parsed_refs[modID][dep]
                 if dep not in loadable:
                     unavailable.append(dep)
-                elif not _version_matches(dep_spec, versions[dep]):
+                elif not _version_matches(dep_spec, versions[dep], schemes[dep]):
                     unavailable.append(f"{dep} (requires {dep_spec}, found {versions[dep]})")
             if unavailable:
                 print(f"\x1b[33m  Skipping mod '{modID}': depends on unavailable mod(s) {unavailable}\033[0m")
@@ -428,6 +635,13 @@ def _check_incompatibilities(manifests, loadable):
         modID: str(manifests[modID].get("version", "0.0.0") or "0.0.0")
         for modID in manifests
     }
+    # Use each conflicting mod's OWN scheme for its version gate, so a mod
+    # declaring "incompatibilities": ["foo>=24w13a"] checks foo as MC if foo
+    # says it uses the MC scheme.
+    schemes = {
+        modID: _resolve_scheme(manifests[modID])
+        for modID in manifests
+    }
     conflicts = []
     for modID in sorted(loadable):
         raw = manifests[modID].get("incompatibilities")
@@ -442,7 +656,7 @@ def _check_incompatibilities(manifests, loadable):
                 # The conflicting mod isn't loaded, so there is nothing to clash with.
                 continue
             spec = incompat[other]
-            if spec is None or _version_matches(spec, versions[other]):
+            if spec is None or _version_matches(spec, versions[other], schemes[other]):
                 if spec is None:
                     conflicts.append(f"'{modID}' is incompatible with '{other}'")
                 else:

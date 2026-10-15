@@ -13,7 +13,10 @@ load alphabetically by `modID`, and every dependency loads before the mod that
 depends on it. A dependency may also carry an optional **version spec** (e.g.
 `"scene_setup>=0.2.0"`), and a mod may declare an **`incompatibilities`** list of
 mods it refuses to run alongside; a detected incompatibility is fatal and stops
-the server. See [Manifest](manifest.md) for the full field reference. Each mod
+the server. Version specs are compared under the target mod's **version scheme**,
+so a mod can opt into a different version convention (e.g. Minecraft snapshots)
+via its `version_scheme` field — see
+[Manifest](manifest.md#version_scheme-optional-defaults-to-pep440). Each mod
 may contribute:
 
 - **Backend logic** — a Python file (default `main.py`) that exposes

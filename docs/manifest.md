@@ -12,6 +12,7 @@ should run. It is read by `server/mod_loader.py`.
     "namespace": "my_mod",
     "name": "My Mod",
     "version": "0.1.0",
+    "version_scheme": "pep440",
     "description": "What this mod does",
     "author": "Your Name",
     "backend_py": "main.py",
@@ -42,7 +43,68 @@ Validation (in `mod_loader._get_namespace`):
 Human-readable mod name, printed during load.
 
 ### `version` — recommended
-String version, printed during load.
+String version, printed during load. It is also the version compared against
+any `dependencies` / `incompatibilities` version specs that target this mod,
+interpreted under this mod's `version_scheme` (see below).
+
+### `version_scheme` — optional, defaults to `"pep440"`
+Which **version convention** this mod's version strings follow, so the loader can
+compare them correctly. It is **not** about the declaring mod — it describes the
+mod this field is *on*. When another mod writes `"my_mod>=1.20"`, the spec is
+evaluated under `my_mod`'s `version_scheme`, so both the installed version and the
+incoming spec are parsed the same way.
+
+A Django-style design is **not** used; instead the value is either the name of a
+built-in convention or a **custom scheme** the mod supplies.
+
+**Built-in schemes:**
+
+| Scheme | Sets | Handles |
+| --- | --- | --- |
+| `pep440` (default) | PEP-440-lite | `1.20.1`, `1.20.1-pre1`, `0.92.0+1.20.4` |
+| `mc` | Minecraft-flavoured | all of the above, plus `24w13a`/`25w02a` snapshots, leading `v` (`v1.20.1`), loader prefixes (`forge-45.2.0`, `fabric-0.92.0+1.20.4`), combined MC+loader versions (`1.20.4-0.92.0`), and Maven-style ranges (`[1.20.1,1.21)`, `(,1.21]`) |
+
+`mc` is what you want for Minecraft-like mod versioning. A `24w13a` snapshot is
+ordered by (year, week, letter), and sorts before the next snapshot. A Maven-style
+range may be used anywhere a version spec appears (`dependencies` /
+`incompatibilities`), e.g. `">=1.20.1"` or `"[1.20.1,1.21)"`. A bracket `[`/`]`
+is inclusive; a paren `(`/`)` is exclusive; a missing edge is unbounded.
+
+**Custom scheme (custom code):** set `version_scheme` to a Python file path,
+relative to the mod folder, that defines a `scheme` object. The loader imports it
+and uses it to parse and compare versions. The file exposes:
+
+```python
+class _Scheme:
+    @staticmethod
+    def parse(v):
+        # Return a sortable, comparable key for version string v.
+        # Raise ValueError if v cannot be parsed under this convention.
+        ...
+    @staticmethod
+    def matches_specifier(spec, version):
+        # Return True if `version` satisfies the single clause `spec`.
+        # Raise ValueError if either cannot be parsed.
+        ...
+scheme = _Scheme
+```
+
+```json
+{ "modID": "my_mod", "version": "alpha-9", "version_scheme": "vscheme.py" }
+```
+
+If the file is missing, fails to import, or has no `scheme` object, the loader
+warns and falls back to `pep440`.
+
+**Unknown scheme name:** any `version_scheme` that isn't a built-in name and
+isn't a `.py` file path falls back to `pep440` with a warning, so a bad value
+never crashes the load.
+
+**How version comparison works and fails-safe:** when a version string cannot be
+parsed under the active scheme, that version gate is treated as **not satisfied**,
+so the dependent mod is **skipped** with a warning. The loader never guesses — it
+prefers a deterministic "this dependency can't be proven compatible" over a
+possibly-wrong load. This is the "warn + block dependent" fail mode.
 
 ### `description` — optional
 What the mod does. Shown in logs and useful for the mod list.
@@ -91,10 +153,18 @@ Each entry is either a **string** or a **dict**:
 ```
 
 The identifier is a **`modID`**, not a namespace. The optional **version spec**
-pins which version of that dependency this mod needs. Supported operators:
-`==`, `!=`, `>=`, `<=`, `>`, `<`, `~=` (compatible release), plus a bare version
-(treated as `==`) and comma-separated ANDs (`">=0.2.0,<1.0"`). A missing or
-blank spec matches any version.
+pins which version of that dependency this mod needs. Supported operators, under
+the **dependency's** `version_scheme`: `==`, `!=`, `>=`, `<=`, `>`, `<`, `~=`
+(compatible release), plus a bare version (treated as `==`) and comma-separated
+ANDs (`">=0.2.0,<1.0"`). Under `version_scheme: "mc"`, Maven-style ranges
+(`[1.20.1,1.21)`, `(,1.21]`) are also accepted. A missing or blank spec matches
+any version.
+
+An important rule: the version spec is evaluated under the **dependency's** scheme,
+not the declaring mod's. So if `scene_setup` declares `"version_scheme": "mc"` and
+`"version": "24w13a"`, then a mod writing `"scene_setup>=24w05a"` is checked as MC —
+both the installed `24w13a` and the incoming `24w05a` are parsed with the MC
+convention, so they compare correctly.
 
 Rules (see `_load_order` in `mod_loader.py`):
 
@@ -205,8 +275,11 @@ def register(registry):
 - A mod whose `namespace` is invalid or `core` is skipped with a warning.
 - A mod with `enabled: false` is skipped.
 - A mod that depends on an unavailable mod — missing, disabled, itself skipped,
-  or whose **declared version spec isn't satisfied** — is skipped with a warning,
-  and this cascades.
+  or whose **declared version spec isn't satisfied** (including a version that
+  can't be parsed under the dependency's `version_scheme`) — is skipped with a
+  warning, and this cascades. The loader never guesses: an unparseable version
+  is treated as unsatisfied, so the dependent is blocked rather than risk a wrong
+  load. See [`version_scheme`](#version_scheme-optional-defaults-to-pep440).
 - A **detected incompatibility** among the mods that will load is **fatal**: the
   loader raises, listing every conflict, and the server refuses to start. See
   [`incompatibilities`](#incompatibilities-optional-defaults-to).
