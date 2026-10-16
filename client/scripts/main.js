@@ -2,26 +2,22 @@
 // Initializes the player's look/rotation state and the movement speed.
 gameState.set(["core:playerData","yaw"],0,true);
 gameState.set(["core:playerData","pitch"],0,true);
-// Base movement speed in world units per second
-gameState.set(["core:playerData","speed"],8,true);
+gameState.set(["core:playerData","speed"],8,true);   // base speed (units/sec)
 const SCROLL_DIALATION=0.005;
 const SENSITIVITY = 0.002; // radians per pixel
 
-// Elements considered "the game screen" — keydown/keyup are only
-// processed for gameplay when one of these is focused. Everything else
-// (text inputs, future UI panels, etc.) passes keys through untouched.
-// isGameFocused() is renderer-specific, so it now lives in the scene_setup mod
-// and is exposed on `window` (it streams in AFTER this bootstrap script). We
-// resolve it lazily at runtime via window.isGameFocused.
+// Elements considered "the game screen" — keydown/keyup are only processed for
+// gameplay when one of these is focused. isGameFocused() is renderer-specific,
+// so it lives in the scene_setup mod and is exposed on `window` (it streams in
+// AFTER this bootstrap script). We resolve it lazily at runtime.
 
 // -- Input handling: keyboard ---------------------------------------------------
 document.addEventListener("keydown", e => { 
-    // Pass the event through (don't capture/preventDefault) when the scene
-    // mod hasn't loaded yet (window.isGameFocused undefined, e.g. login
-    // screen) OR the focused element is not the game screen (e.g. a text
-    // input). Only then do we treat it as gameplay input.
+    // Pass the event through when the scene mod hasn't loaded yet
+    // (window.isGameFocused undefined, e.g. login screen) OR the focused
+    // element is not the game screen (e.g. a text input).
     if (!window.isGameFocused || !window.isGameFocused()) {
-        return; // some other UI element is focused — let it handle typing normally
+        return;
     }
     gameState.set(["core:keys",e.code],true,true);
     e.preventDefault(); 
@@ -36,13 +32,11 @@ document.addEventListener("keyup", e => {
 });
 
 // -- Input handling: mouse (pointer lock + look + scroll) ------------------------
-// Pointer lock
 // The renderer's canvas is created by the scene_setup mod, which loads over the
 // WebSocket AFTER this bootstrap script. ensurePointerLock() is renderer-
-// specific, so it now lives in the scene_setup mod and is exposed on `window`;
-// the render loop calls it lazily via window.ensurePointerLock (which only
-// runs after the scene mod streams in, so the canvas exists by then).
-//Set camera look direction
+// specific, so it lives in the scene_setup mod and is exposed on `window`; the
+// render loop calls it lazily via window.ensurePointerLock (which only runs
+// after the scene mod streams in, so the canvas exists by then).
 document.addEventListener("mousemove", e => {
     if (!window.renderer || document.pointerLockElement !== window.renderer.domElement) return;
     let yaw=gameState.get(["core:playerData","yaw"]);
@@ -64,8 +58,7 @@ document.addEventListener("wheel", e => {
 });
 
 // -- Resize handler ------------------------------------------------------------
-// Owned by the scene_setup mod now (it owns the renderer and camera). No
-// duplicate handler here.
+// Owned by the scene_setup mod now (it owns the renderer and camera).
 
 // -- Render loop ---------------------------------------------------------------
 let last = performance.now();
@@ -87,11 +80,9 @@ function loop() {
         gameState.set(["core:deltaTime"], tickrate, true);
         if (gameState.get(["core:initialized"]))
             wsRegistry.dispatch("core:tick", gameState);
-        // Send collected client input to server
         socket.send(encode({"op": "sync_with_server", "params": gameState.get(["core:client_send_buffer"])}));
         gameState.set(["core:client_send_buffer"], {}, true);
         tickDelta -= tickrate;
-        // Clear receive buffer after processing
         gameState.set(["core:server_receive_buffer"], []);
     }
     // Make sure the pointer-lock listener is attached once the scene mod's

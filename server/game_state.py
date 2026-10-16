@@ -15,24 +15,18 @@ through untouched, so core keys stay hard-coded.
 """
 import threading, copy
 
-# Central game state storage and accessing handler
 class GameState:
     def __init__(self):
         self._state = {}
         self._lock = threading.RLock()
         # Stack of active mod namespaces (mirrors Registry._namespace_stack).
-        # Empty means "not inside mod code" — unqualified keys then reference
-        # core game data as before, preserving existing behavior.
         self._namespace_stack = []
 
     # -- Namespace management ---------------------------------------------------
-    # While a mod's code runs, the active namespace is pushed here so that any
+    # While a mod's code runs, the active namespace is pushed here so any
     # unqualified key it uses is auto-prefixed by _resolve() below.
     def push_namespace(self, namespace):
-        """Enter a mod's namespace. Mod loader calls this around register().
-
-        :param namespace: Namespace string from the mod's manifest.json
-        """
+        """Enter a mod's namespace. The mod loader calls this around register()."""
         self._namespace_stack.append(namespace)
 
     def pop_namespace(self):
@@ -45,14 +39,14 @@ class GameState:
         return self._namespace_stack[-1] if self._namespace_stack else None
 
     # -- Key resolution ----------------------------------------------------------
-    # Internal helper backing set/get/exists/initialize. It is what turns a
-    # mod's unqualified key into a fully-namespaced one at access time.
+    # Internal helper that turns a mod's unqualified key into a fully-namespaced
+    # one at access time.
     def _resolve(self, key: list) -> list:
         """Prefix an unqualified key's first element with the active namespace.
 
         A key is unqualified if its first element contains no ":". Qualified
         keys (e.g. ["core:global_broadcast"]) are returned unchanged — this is
-        what keeps all "core:something" usages working as before.
+        what keeps all "core:something" usages working.
 
         :param key: Key list to resolve
         :return: New key list with first element namespaced if unqualified
@@ -131,20 +125,15 @@ class GameState:
             return True
     
     def initialize(self,key:list,value):
-        """Helper function to initialize a value if it does not exist, else do nothing
-
-        :param key: key to initialize
-        :param value: Value to initialize to
-        """
+        """Initialize a value if it does not exist, else do nothing."""
         with self._lock:
             if not self.exists(key):
                 self.set(key,value,True)
 
     # -- Send/receive buffer helpers --------------------------------------------
-    # These wrap the core sync buffers so mods never have to touch raw
-    # "core:*" keys themselves. add_to_broadcast/add_to_client_sync
-    # auto-namespace their unqualified key arguments with the active mod
-    # namespace (manifest "namespace").
+    # These wrap the core sync buffers so mods never touch raw "core:*" keys.
+    # add_to_broadcast/add_to_client_sync auto-namespace their unqualified key
+    # arguments with the active mod namespace.
     def _resolve_message_key(self, key: str) -> str:
         """Resolve a single message key (not a key list) to its namespaced form.
 
@@ -215,8 +204,6 @@ class GameState:
         """
         with self._lock:
             buffer = self.get(["core:client_receive_buffer"], default=[])
-            # No player filter -> return everything buffered this tick
             if playerName is None:
                 return buffer
-            # Otherwise keep only that player's entries
             return [entry for entry in buffer if entry.get("playerName") == playerName]

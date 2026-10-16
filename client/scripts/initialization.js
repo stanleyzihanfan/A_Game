@@ -1,6 +1,5 @@
 // -- WebSocket bootstrap -------------------------------------------------------
-// Raw message handler before client is initialized
-// Routes init, load_mod_js, and mods_ready — then hands off to mod dispatch
+// Raw message handler before the client is initialized.
 let WSConnectStartTime = -1;
 
 
@@ -33,7 +32,7 @@ function initClient() {
         originalError.apply(console, [timestamp, ...args]);
         sendClientLog("error", timestamp, args);
     }
-    //Error handling
+    // Error handling
     window.onerror = function(msg, src, line, col, err) {
         const div = document.getElementById("errorlog");
         if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
@@ -52,10 +51,9 @@ function initClient() {
 function onModsReady() {
     console.log(`Client loading complete`);
     gameState.set(["core:initialized"],false,true);
-    // -- Hand off WebSocket to gamestate ------------------------------
+    // Hand off WebSocket message handling to gamestate
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));
-        //Route message to game state
         if (msg["op"]==="core:sync_with_client"){
             if (gameState.exists(["core:server_receive_buffer"])){
                 let tmp=gameState.get(["core:server_receive_buffer"]);
@@ -82,13 +80,12 @@ function onSocketOpen() {
     socket.send(encode({"op":"init","playerName":playerName,"psw":playerPassword}));
 }
 
-// Client-side disconnect handler.
-// Mirrors the server's core:on_player_disconnect hook, but on the client. Fired
-// whenever the game socket closes (server kick, network drop, tab close). Mods
-// can register a "core:on_disconnect" handler to tear down UI, stop timers, or
-// clean up state. Note that if the socket never fully opened (e.g. rejected
-// connection before mods were streamed), wsRegistry may not have any handlers
-// registered yet — dispatch() is a no-op then.
+// Client-side disconnect handler. Mirrors the server's core:on_player_disconnect
+// hook, but on the client. Fired whenever the game socket closes (server kick,
+// network drop, tab close). Mods can register a "core:on_disconnect" handler to
+// tear down UI, stop timers, or clean up state. Note that if the socket never
+// fully opened (e.g. rejected before mods were streamed), wsRegistry may not
+// have any handlers registered yet — dispatch() is a no-op then.
 function onSocketClose(e) {
     console.log(`[core] Socket closed (code ${e && e.code !== undefined ? e.code : "unknown"}, reason: ${e && e.reason ? e.reason : ""})`);
     gameState.set(["core:initialized"], false, true);
@@ -97,9 +94,9 @@ function onSocketClose(e) {
         reason: e && e.reason ? e.reason : "",
         wasClean: e ? !!e.wasClean : false,
     });
-    // Notify mods that the client is disconnecting. wsRegistry.dispatch
-    // re-enters each handler's namespace, and (since the earlier change) also
-    // re-enters uiRegistry, so unqualified ui names resolve inside them.
+    // Notify mods that the client is disconnecting. wsRegistry.dispatch re-enters
+    // each handler's namespace, and also re-enters uiRegistry so unqualified ui
+    // names resolve inside them.
     wsRegistry.dispatch("core:on_disconnect", gameState);
 }
 
@@ -112,9 +109,9 @@ function onSocketMessage(e) {
         return;
     }
     else if (msg["op"] === "load_mod_js") {
-        // params: [modID, source, namespace] — namespace comes from the
-        // mod's manifest.json and auto-prefixes unqualified names/keys the
-        // script uses, mirroring the server-side mod loader.
+        // params: [modID, source, namespace] — namespace comes from the mod's
+        // manifest.json and auto-prefixes unqualified names/keys the script
+        // uses, mirroring the server-side mod loader.
         const [modID, src, namespace] = msg["params"];
         try {
             console.log(`Loading frontend mod script: ${modID}`);

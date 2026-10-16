@@ -8,20 +8,15 @@ import argparse, subprocess, threading, traceback, shutil, os
 from server import core
 
 # -- Argument parsing ----------------------------------------------------------
-# --tunnel flag exposes the server publicly via cloudflared (e.g. for multiplayer)
-# Without it the server runs on localhost only (e.g. for local singleplayer)
+# --tunnel flag exposes the server publicly via cloudflared (e.g. for multiplayer).
+# Without it the server runs on localhost only (e.g. for local singleplayer).
 parser = argparse.ArgumentParser()
 parser.add_argument("--tunnel", action="store_true", help="Expose via cloudflared tunnel")
 args = parser.parse_args()
 
 # -- Cloudflared discovery -------------------------------------------------------
-# Helper function to locate the cloudflared binary for tunneling.
 def find_cloudflared():
-    """
-    Search for cloudflared in common locations.
-    Returns the path to the cloudflared binary, or None if not found.
-    """
-    # Common locations on different systems
+    """Search for cloudflared in common locations; returns its path or None."""
     candidates = [
         "/usr/local/bin/cloudflared",           # Local Linux install
         "/usr/bin/cloudflared",                 # System-wide Linux install
@@ -40,8 +35,7 @@ try:
     port = core.start()
 
     # -- Tunnel (optional) -----------------------------------------------------
-    # Only started when --tunnel flag is passed (e.g. for public multiplayer)
-    # For local singleplayer, the server is accessed directly at localhost:{port}
+    # Only started when --tunnel is passed (e.g. for public multiplayer).
     if args.tunnel:
         CLOUDFLARED = find_cloudflared()
         if CLOUDFLARED==None:
@@ -52,7 +46,6 @@ try:
             stderr=subprocess.STDOUT  # merge stderr into stdout so one loop sees everything
         )
         print("Starting tunnel, waiting for URL...")
-        # Capture & print full output
         for line in tunnelProc.stdout: # type: ignore
             text = line.decode("utf-8", errors="replace").strip()
             if text:

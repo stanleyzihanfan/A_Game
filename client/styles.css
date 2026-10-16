@@ -64,8 +64,7 @@ canvas { display: block; }
 }
 
 /* -- UI mount point (client mods attach views here via uiRegistry) -------------
-   Sits above the renderer but below the connect overlay, so it is visible in
-   gameplay and hidden behind the login screen. */
+   Sits above the renderer but below the connect overlay. */
 #ui-root {
     position: fixed;
     inset: 0;

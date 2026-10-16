@@ -15,7 +15,7 @@ strings pass through untouched (they are hard-coded by design).
 import os, json, importlib.util, re
 
 class ModIncompatibilityError(Exception):
-    """Raised when two mods that will be loaded declare an incompatibility.
+    """Raised when two loaded mods declare an incompatibility.
 
     Carries the list of detected conflicts. The server treats a broken mod mix
     as fatal: it stops loading and refuses to start rather than running with
@@ -25,8 +25,7 @@ class ModIncompatibilityError(Exception):
 # -- Mod loader ----------------------------------------------------------------
 # Scans the /mods directory, reads each manifest.json, and loads each mod's
 # backend_py in order, calling register(registry) on each one.
-# Note: below, MODS_DIR is the absolute path to the /mods folder at project root.
-
+# MODS_DIR is the absolute path to the /mods folder at project root.
 MODS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mods")
 
 # -- Namespace helpers -----------------------------------------------------------
@@ -52,14 +51,10 @@ def _get_namespace(manifest):
 
 # -- Version handling ------------------------------------------------------------
 # Version comparison is pluggable per-mod. A "version scheme" (identified by a
-# string, stored in a mod's manifest as "version_scheme") knows how to turn a
-# version string into a sortable, comparable key, and optionally how to match a
-# specifier against a version when the operators alone aren't enough.
-#
-# The scheme used to evaluate a dependency/incompatibility constraint is the
-# TARGET mod's scheme (the dependency's), not the declaring mod's. That mirrors
-# Minecraft modding, where the version convention belongs to the mod being
-# depended on (e.g. a snapshot '24w13a' or a loader-prefixed 'forge-45.2.0').
+# string, stored in a mod's manifest as "version_scheme") turns a version string
+# into a sortable key, and optionally matches a specifier against a version when
+# the operators alone aren't enough. The scheme used to evaluate a dependency/
+# incompatibility constraint is the TARGET mod's scheme, not the declaring mod's.
 #
 # Built-ins:
 #   - 'pep440' (default): dotted numeric releases, optional pre-release suffix,
@@ -206,8 +201,8 @@ class _MinecraftScheme(_PEP440Scheme):
         pm = re.match(r"^(\d+(?:\.\d+)*)", s)
         if not pm:
             # Didn't even start with a number — fall through to PEP-440 (which
-            # will raise a clear "unrecognized" error that the caller treats as
-            # an unsatisfied gate).
+            # raises a clear "unrecognized" error the caller treats as an
+            # unsatisfied gate).
             return super().parse(s)
         primary = pm.group(1)
         trailing = s[pm.end():]
@@ -306,12 +301,11 @@ def _resolve_scheme(manifest, mods_dir=MODS_DIR):
       - a built-in/registered scheme name (e.g. "pep440", "mc"); or
       - a path to a Python file defining a scheme, relative to the mod folder
         (e.g. "version_scheme.py"). The file must expose a module-level
-        `scheme` object with `parse(v)` and `matches_specifier(s, v)`, or a
-        `version_scheme`/`register(registry)`? No -- just a `scheme` object.
+        `scheme` object with `parse(v)` and `matches_specifier(s, v)`.
 
     An unknown scheme name, or a custom file that fails to load, falls back to
-    the default PEP-440 scheme with a warning, so a bad scheme never crashes
-    the load (though it may cause version gates to behave conservatively).
+    the default PEP-440 scheme with a warning, so a bad scheme never crashes the
+    load (though it may cause version gates to behave conservatively).
 
     :param manifest: The mod's manifest dict
     :param mods_dir: Absolute path to the mods directory (for relative file paths)
@@ -350,8 +344,8 @@ def _version_matches(spec, version, scheme=None):
     """Return True if `version` satisfies `spec` under the given scheme class.
 
     If the scheme cannot parse `version` (or the spec), the constraint is treated
-    as NOT satisfied (returns False) -- the caller then warns and blocks the
-    dependent mod, rather than guessing. This is the "warn + block" fail mode.
+    as NOT satisfied (returns False) — the caller then warns and blocks the
+    dependent mod rather than guessing. This is the "warn + block" fail mode.
 
     :param spec: version spec string or None (None matches anything)
     :param version: installed version string
@@ -374,6 +368,8 @@ def _version_matches(spec, version, scheme=None):
                 # Unparseable under this scheme -> cannot prove satisfaction.
                 return False
     return True
+
+
 # -- Dependency / incompatibility entry parsing ---------------------------------
 # A dependency or incompatibility entry may be either:
 #   - a plain string: 'player_position' (no version), or 'scene_setup>=0.2.0'
@@ -453,15 +449,15 @@ def _cycle_groups(remaining, deps):
     self-dependencies are discarded up front, an SCC of size 1 is never a real
     cycle, so only multi-mod SCCs are returned. Each group is returned sorted.
 
-    This is what lets the loader report each independent cycle separately
-    (e.g. a<->b and c<->d are two distinct groups), instead of lumping every
-    stuck mod into one message.
+    This lets the loader report each independent cycle separately (e.g. a<->b and
+    c<->d are two distinct groups), instead of lumping every stuck mod into one
+    message.
 
     :param remaining: set of modIDs still not ordered
     :param deps: dict of modID -> set of modIDs it depends on (loadable only)
     :return: list of sorted lists, each a distinct cycle group
     """
-    # Tarjan's strongly connected components, on the subgraph induced by `remaining`.
+    # Tarjan's SCC algorithm, on the subgraph induced by `remaining`.
     index = {}
     lowlink = {}
     on_stack = set()
@@ -500,8 +496,7 @@ def _cycle_groups(remaining, deps):
     return groups
 
 def _load_order(manifests):
-    """
-    Return mod folders in load order, topologically sorted by dependencies.
+    """Return mod folders in load order, topologically sorted by dependencies.
 
     A mod's manifest may declare a "dependencies" list of modID strings. Every
     dependency is guaranteed to load BEFORE the mod that depends on it, so a mod
@@ -513,15 +508,12 @@ def _load_order(manifests):
     config problem never crashes the whole load):
       - A mod that depends on a modID that will NOT be loaded — because it is
         missing, disabled (enabled:false), or itself skipped — is skipped with a
-        warning. This cascades: mods that depend on a skipped mod are skipped
-        too.
+        warning. This cascades: mods that depend on a skipped mod are skipped too.
       - A dependency whose declared version spec is NOT satisfied by the
         dependency's manifest version is skipped with a warning (and cascades).
       - Dependency cycles are detected and broken deterministically at the
         alphabetically-first mod of each cycle, with a warning. Each distinct
-        (strongly connected) cycle group is reported separately, so multiple
-        independent cycles each get their own warning instead of one merged
-        message.
+        (strongly connected) cycle group is reported separately.
       - A self-dependency is ignored with a warning.
       - A non-list or non-string "dependencies" value is ignored with a warning.
 
@@ -530,29 +522,25 @@ def _load_order(manifests):
     """
     import heapq
 
-    # -- Read dependency edges, ignoring bad values -----------------------------
-    # parsed_refs[modID] is the dict {dep_modID: version_spec_or_None} parsed
-    # straight from the manifest. deps[modID] is the set of dep modIDs (the keys
-    # of parsed_refs[modID]); keeping both lets the version spec be checked
-    # against the dependency's own manifest version.
+    # Read dependency edges, ignoring bad values. parsed_refs[modID] is the dict
+    # {dep_modID: version_spec_or_None} parsed from the manifest; deps[modID] is
+    # the set of dep modIDs (the keys of parsed_refs[modID]).
     parsed_refs = {}
     for modID in sorted(manifests.keys()):
         raw = manifests[modID].get("dependencies") or []
         parsed_refs[modID] = _parse_dependency_list(raw, modID, "dependencies")
     deps = {modID: set(parsed.keys()) for modID, parsed in parsed_refs.items()}
 
-    # -- Drop unsatisfiable mods (missing / disabled / transitively-skipped) ----
-    # A mod is unsatisfiable if any of its dependencies is not loadable (missing,
-    # disabled, or itself skipped) OR does not satisfy the declared version spec.
-    # We resolve to a fixpoint so that mods which depend on a skipped mod are also
-    # skipped — e.g. A -> B -> (missing), so B is skipped and A is skipped too.
+    # Drop unsatisfiable mods (missing / disabled / transitively-skipped). A mod
+    # is unsatisfiable if any dependency is not loadable OR does not satisfy the
+    # declared version spec. Resolve to a fixpoint so mods depending on a skipped
+    # mod are also skipped.
     versions = {
         modID: str(manifests[modID].get("version", "0.0.0") or "0.0.0")
         for modID in manifests
     }
     # Resolve each mod's version scheme once. The scheme used to evaluate a
-    # dependency's version gate is the DEPENDENCY's scheme (the convention the
-    # dependency's version strings follow), not the declaring mod's.
+    # dependency's version gate is the DEPENDENCY's scheme, not the declaring mod's.
     schemes = {
         modID: _resolve_scheme(manifests[modID])
         for modID in manifests
@@ -574,9 +562,9 @@ def _load_order(manifests):
                 loadable.discard(modID)
                 changed = True
 
-    # -- Topologically sort the loadable set ------------------------------------
-    # Kahn's algorithm with an alphabetical heap for deterministic tie-breaking
-    # (matches the old alphabetical order for mods with no dependencies).
+    # Topologically sort the loadable set. Kahn's algorithm with an alphabetical
+    # heap for deterministic tie-breaking (matches the old alphabetical order for
+    # mods with no dependencies).
     indegree = {modID: 0 for modID in loadable}
     dependents = {modID: [] for modID in loadable}  # modID -> mods that depend on it
     for modID in loadable:
@@ -594,10 +582,9 @@ def _load_order(manifests):
         if ready:
             modID = heapq.heappop(ready)
         else:
-            # No ready mods left, but mods still remain -> at least one
-            # dependency cycle exists among `remaining`. Report each distinct
-            # cycle group exactly once (so independent cycles each get their own
-            # warning), then break deterministically at the alphabetically-first
+            # No ready mods but mods still remain -> at least one dependency
+            # cycle exists among `remaining`. Report each distinct cycle group
+            # once, then break deterministically at the alphabetically-first
             # remaining mod so the load continues rather than stalling.
             for group in sorted(_cycle_groups(remaining, deps)):
                 key = frozenset(group)
@@ -636,8 +623,8 @@ def _check_incompatibilities(manifests, loadable):
         for modID in manifests
     }
     # Use each conflicting mod's OWN scheme for its version gate, so a mod
-    # declaring "incompatibilities": ["foo>=24w13a"] checks foo as MC if foo
-    # says it uses the MC scheme.
+    # declaring "incompatibilities": ["foo>=24w13a"] checks foo as MC if foo says
+    # it uses the MC scheme.
     schemes = {
         modID: _resolve_scheme(manifests[modID])
         for modID in manifests
@@ -647,9 +634,8 @@ def _check_incompatibilities(manifests, loadable):
         raw = manifests[modID].get("incompatibilities")
         if not raw:
             continue
-        # Note: we parse incompatibilities here rather than up front, so a mod
-        # that is itself skipped never raises — only mods that actually load can
-        # produce conflicts.
+        # Parse incompatibilities here rather than up front, so a mod that is
+        # itself skipped never raises — only mods that actually load can conflict.
         incompat = _parse_dependency_list(raw, modID, "incompatibilities")
         for other in sorted(incompat):
             if other not in loadable:
@@ -668,12 +654,12 @@ def _check_incompatibilities(manifests, loadable):
 
 
 def load_mods(registry, game_state=None):
-    """
-    Scans MODS_DIR, loads each valid mod, and calls register(registry) on its backend module.
-    Returns a list of loaded manifest dicts (for use by core.py to know which client.js to serve).
+    """Scan MODS_DIR, load each valid mod, and call register(registry) on its backend.
 
-    While each mod loads, its manifest namespace is pushed onto the registry
-    (and game state, if given) so unqualified names/keys auto-prefix with it.
+    Returns a list of loaded manifest dicts (for use by core.py to know which
+    client.js to serve). While each mod loads, its manifest namespace is pushed
+    onto the registry (and game state, if given) so unqualified names/keys
+    auto-prefix with it.
 
     :param registry: Handler registry mods register against
     :param game_state: Optional game state to namespace during loading
@@ -682,8 +668,8 @@ def load_mods(registry, game_state=None):
         print("No mods directory found, skipping mod loading")
         return []
 
-    # -- Discover mods ---------------------------------------------------------
-    # Read all manifests first so load order can be determined before any imports
+    # Discover mods: read all manifests first so load order can be determined
+    # before any imports.
     manifests = {}
     for mod_folder in os.listdir(MODS_DIR):
         mod_path = os.path.join(MODS_DIR, mod_folder)
@@ -697,11 +683,9 @@ def load_mods(registry, game_state=None):
             manifest = json.load(f)
         manifest["_mod_path"] = mod_path  # stash path for later use
 
-        # -- Disabled check ----------------------------------------------------
-        # A mod can be turned "off" (not imported, not registered, and its
-        # client.js not streamed) while keeping its files and code intact, by
-        # setting "enabled": false in its manifest.json. Default is enabled so
-        # existing mods without the field keep loading unchanged.
+        # Disabled check: a mod can be turned off (not imported, not registered,
+        # its client.js not streamed) while keeping its files intact, by setting
+        # "enabled": false in its manifest.json. Default is enabled.
         if not manifest.get("enabled", True):
             print(f"\x1b[33mMod '{mod_folder}' is disabled in manifest, skipping\033[0m")
             continue
@@ -713,12 +697,10 @@ def load_mods(registry, game_state=None):
             continue
         manifests[manifest["modID"]] = manifest
 
-    # -- Load in order ---------------------------------------------------------
-    # Determine load order FIRST (this prunes unavailable mods and detects
-    # dependency cycles), then check for declared incompatibilities among the
-    # mods that will actually load. An incompatibility is fatal and stops the
-    # entire load, so the server refuses to start with a broken mod mix instead
-    # of running partway.
+    # Load in order. Determine load order FIRST (prunes unavailable mods and
+    # detects cycles), then check for declared incompatibilities among the mods
+    # that will actually load. An incompatibility is fatal and stops the entire
+    # load, so the server refuses to start with a broken mod mix.
     order = _load_order(manifests)
     _check_incompatibilities(manifests, set(order))
 
@@ -732,24 +714,21 @@ def load_mods(registry, game_state=None):
         print(f"Loading mod: {manifest['name']} v{manifest['version']} ({modID}) [namespace: {namespace}]")
 
         # Enter the mod's namespace for the whole backend load — every
-        # unqualified op/handler name/state key inside register() (and any
-        # module-level code) is prefixed with `namespace` automatically.
+        # unqualified op/handler/state key inside register() is prefixed
+        # with `namespace` automatically.
         registry.push_namespace(namespace)
         if game_state is not None:
             game_state.push_namespace(namespace)
         try:
-            # backend_py is nullable — client-side-only mods skip this.
-            # No backend_py in the manifest (absent or empty) means the mod is
-            # client-side only, so there is nothing to register server-side and
-            # no warning should be emitted (mirrors the silent client_js skip
-            # in core._send_mod_scripts for server-side-only mods).
+            # backend_py is nullable — client-side-only mods skip this (no
+            # warning, mirroring the silent client_js skip in core.py).
             if backend_py:
                 py_path = os.path.join(mod_path, backend_py)
                 if not os.path.isfile(py_path):
                     print(f"\x1b[33m  main.py '{backend_py}' not found for mod '{modID}'\033[0m")
                 else:
-                    # Dynamically import the mod's main.py without polluting sys.modules
-                    # with a generic name — use modID as the module name
+                    # Dynamically import the mod's main.py without polluting
+                    # sys.modules — use modID as the module name.
                     spec = importlib.util.spec_from_file_location(f"mod_{modID}", py_path)
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
@@ -760,12 +739,11 @@ def load_mods(registry, game_state=None):
                     else:
                         module.register(registry)
                     print(f"  Backend registered: {backend_py}")
-            # else: no backend_py — mod is client-side only, skip silently.
 
             loaded.append(manifest)
             print(f"  Loaded OK")
         except Exception:
-            # A failed load must not take the namespace stack down with it
+            # A failed load must not take the namespace stack down with it.
             raise
         finally:
             registry.pop_namespace()

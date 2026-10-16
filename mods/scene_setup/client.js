@@ -1,22 +1,19 @@
 /**
  * Scene setup mod (frontend).
  *
- * Owns all of the Three.js scene setup that used to live inline in
- * client/scripts/pre_initialization.js: the scene/renderer/camera, lighting,
- * the grid floor, and the voxel geometry + materials. It also owns the window
- * resize handler so the renderer and camera stay in sync.
+ * Owns all the Three.js scene setup that used to live inline in
+ * client/scripts/pre_initialization.js: scene/renderer/camera, lighting, the
+ * grid floor, and voxel geometry + materials. It also owns the window resize
+ * handler so the renderer and camera stay in sync.
  *
  * Because mod client scripts are eval()'d (see initialization.js
  * onSocketMessage -> "load_mod_js"), top-level `const`/`let` here would NOT be
  * visible to the rest of the client. So every object is attached to `window`,
- * which is exactly how the other mods (player_position, testmod) already read
- * `camera`, `scene`, `voxelGeo`, etc. as bare globals.
+ * which is how the other mods read `camera`, `scene`, `voxelGeo`, etc.
  *
- * The scene is created at mod-load time, which happens during the WebSocket
- * handshake AFTER the bootstrap scripts (pre_initialization.js, main.js) have
- * already run. main.js references renderer/camera/scene only at runtime (inside
- * its render loop, resize handler, and event listeners), so by the time those
- * run the objects exist on window.
+ * The scene is created at mod-load time, during the WebSocket handshake AFTER
+ * the bootstrap scripts run. main.js references these objects only at runtime,
+ * so by then they exist on window.
  *
  * Namespacing: this mod's manifest.json declares "namespace": "scene_setup".
  */
@@ -57,14 +54,12 @@ voxelTest.position.set(2,2,0);
 window.scene.add(voxelTest);
 
 // -- Renderer-scoped helpers ---------------------------------------------------
-// These two used to live in client/scripts/main.js, but they are renderer-
-// specific, so they belong with the scene setup. They are exposed on `window`
-// because main.js runs during bootstrap (before this mod streams in), so it
-// calls them lazily at runtime via `window.isGameFocused` / `window.ensurePointerLock`.
+// These used to live in client/scripts/main.js, but they are renderer-specific.
+// They are exposed on `window` because main.js runs during bootstrap (before
+// this mod streams in), so it calls them lazily via window.isGameFocused /
+// window.ensurePointerLock.
 window.isGameFocused = function() {
     const active = document.activeElement;
-    // The body is always considered "the game screen"; the renderer canvas
-    // counts too once it exists.
     if (active === document.body) return true;
     if (window.renderer && active === window.renderer.domElement) return true;
     return false;

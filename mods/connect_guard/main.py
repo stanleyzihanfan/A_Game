@@ -12,8 +12,8 @@ dispatches the "core:on_player_connect_request" hook BEFORE accepting the
 websocket. This mod's handler reads that context, decides whether to accept,
 and writes the outcome back. The mod only decides — core owns the socket
 lifecycle and performs the actual ws.close() based on the recorded decision.
-Keeping the socket in core (not in a mod) is deliberate: it preserves a single
-owner for connections and active_connections bookkeeping.
+Keeping the socket in core (not in a mod) preserves a single owner for
+connections and active_connections bookkeeping.
 
 Namespacing: this mod's manifest.json declares "namespace": "connect_guard".
 All keys below are explicitly qualified ("core:..."), so they pass through the

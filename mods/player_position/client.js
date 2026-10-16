@@ -1,13 +1,13 @@
 /**
  * Player position handler mod (frontend).
  *
- * Applies the camera rotation from player yaw/pitch,
- * packages movement key states each tick for the server,
- * and updates the camera position when server sync arrives.
+ * Applies the camera rotation from player yaw/pitch, packages movement key
+ * states each tick for the server, and updates the camera position when the
+ * server sync arrives.
  *
  * Namespacing: this mod's manifest.json declares "namespace": "player_position".
- * The client applies it while this script is eval()ed, so every unqualified
- * op, handler name, and message key below is automatically prefixed — e.g.
+ * The client applies it while this script is eval()ed, so every unqualified op,
+ * handler name, and message key below is automatically prefixed — e.g.
  * "movement_handler" becomes "player_position:movement_handler". Core hooks
  * ("core:...") are always explicitly qualified and pass through untouched.
  */
@@ -20,13 +20,6 @@ function update_camera_rotation(gameState) {
 }
 
 wsRegistry.register_handler("core:update_camera", update_camera_rotation, "updateCameraRotation");
-
-function test_client_receive(gameState) {
-	if (gameState.readServerMessages().length!==0){
-		console.log(gameState.readServerMessages());
-	}
-}
-// wsRegistry.register_handler("core:tick",test_client_receive,"test_client_receive");
 
 // Collect held-movement keys and current yaw/speed into the send buffer
 function update_player_move_data(gameState) {
@@ -52,9 +45,6 @@ function update_player_position(gameState) {
         grid.position.x=-playerposdata["x"];
         grid.position.y=-playerposdata["y"];
         grid.position.z=-playerposdata["z"];
-        // camera.position.x = playerposdata["x"];
-        // camera.position.y = playerposdata["y"];
-        // camera.position.z = playerposdata["z"];
     }
 }
 
@@ -67,8 +57,6 @@ function initialize_player_position(gameState){
         camera.position.z = 0;
         // Persist the look direction into player data so the first-person
         // control state matches where the server thinks the player is facing.
-        // Guard against payloads that omit yaw/pitch so a malformed sync never
-        // zeroes out the camera.
         if (typeof playerPosData["yaw"] === "number") {
             gameState.set(["core:playerData","yaw"],playerPosData["yaw"]);
             camera.rotation.y = playerPosData["yaw"];

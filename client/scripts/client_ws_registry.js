@@ -4,20 +4,18 @@
  * Mods call register_handler() to add their own ops
  *
  * Namespacing:
- * The registry tracks an "active namespace" (set by the mod loader around
- * a mod script's eval()). Any unqualified op or handler name (no ":") is
+ * The registry tracks an "active namespace" (set by the mod loader around a
+ * mod script's eval()). Any unqualified op or handler name (no ":") is
  * automatically prefixed with it: "syncBlocks" -> "testmod:syncBlocks".
- * Strings that already contain ":" (e.g. every "core:something") pass
- * through untouched, so core hooks stay hard-coded.
- * While no mod is loading (namespace null), unqualified names are an error:
- * outside of mod loading, everything must be explicitly namespaced.
+ * Strings that already contain ":" (e.g. every "core:something") pass through
+ * untouched. While no mod is loading (namespace null), unqualified names are
+ * an error.
  */
 class Registry {
     constructor() {
         this._handlers = { "core:tick": {} ,"core:keydown":{}, "core:keyup":{}};
         this.UFID=0;
         // Stack of active namespaces; top frames the mod currently loading.
-        // Empty means "not loading a mod" — no implicit namespace.
         this._namespaceStack = [];
     }
 
@@ -71,14 +69,13 @@ class Registry {
     }
 
     /**
-     * Register a handler
+     * Register a handler.
      *
      * Unqualified op/handler names are automatically prefixed with the
-     * namespace of the mod being loaded (see manifest.json "namespace").
-     * The handler remembers the namespace active at registration, and
-     * dispatch() re-enters it while the handler runs — so the handler's
-     * own unqualified names/keys keep resolving to its mod's namespace
-     * even when dispatched long after loading.
+     * namespace of the mod being loaded. The handler remembers the namespace
+     * active at registration, and dispatch() re-enters it while the handler
+     * runs — so the handler's own unqualified names/keys keep resolving to its
+     * mod's namespace even when dispatched long after loading.
      *
      * @param {string} op - Name of event hook
      * @param {Function} func - Function object of handler
@@ -97,9 +94,9 @@ class Registry {
             this._handlers[op] = {};
             console.log(`  Frontend Event Hook ${op} created.`);
         }
-        //Exit early if no function is provided(only registers event hook)
+        // Exit early if no function is provided (only registers event hook)
         if (func === null) return;
-        // If name is not provided, replace with _lambda+unique function ID to prevent collision
+        // If name is not provided, use a unique id to prevent collision
         if (handlerName === null) {
             handlerName = `_lambda_${this.UFID}`;
             this.UFID++;
@@ -114,14 +111,14 @@ class Registry {
     }
 
     /**
-     * Get a handler
+     * Get a handler.
      *
      * @param {string} op - Event hook to look under
      * @param {string} [name] - Optional, name of handler to get
      * @returns {Object|Function|null} If name is provided, returns the handler
      * record {func, namespace} (use .func for the callable).
-     * If name is not provided/None, returns full event hook of handler+name as an object.
-     * Returns null if not found.
+     * If name is not provided/None, returns full event hook of handler+name as
+     * an object. Returns null if not found.
      */
     // -- Handler retrieval ----------------------------------------------------------
     // Looks up a handler record (or a whole op's object) by name.
@@ -135,13 +132,12 @@ class Registry {
     }
 
     /**
-     * Dispatch a hook/handler
+     * Dispatch a hook/handler.
      *
-     * Dispatch intentionally does NOT auto-namespace the op itself: op is
-     * used as given. But each handler is invoked inside the namespace it
-     * was registered under (null for core code), so its own unqualified
-     * names/keys resolve to its mod's namespace at runtime — the "assume
-     * the namespace it gets called in" behavior.
+     * Dispatch intentionally does NOT auto-namespace the op itself: op is used
+     * as given. But each handler is invoked inside the namespace it was
+     * registered under (null for core code), so its own unqualified names/keys
+     * resolve to its mod's namespace at runtime.
      *
      * @param {string} op - Event hook to dispatch
      * @param {GameState} gameState - The game state to pass to handlers

@@ -2,31 +2,26 @@ import traceback
 from server.game_state import GameState
 
 # -- Central op handler registry ------------------------------------------------
-# Replaces the wsDispatch dict in the original backend.py.
-# Mods call register_handler() to add their own ops.
+# Replaces the wsDispatch dict in the original backend.py. Mods call
+# register_handler() to add their own ops.
 #
 # Namespacing:
 # The registry tracks an "active namespace" (set by the mod loader while a
 # mod's register() runs). Any unqualified op or handler name (no ":") is
 # automatically prefixed with it: "syncBlocks" -> "testmod:syncBlocks".
 # Strings that already contain ":" (e.g. every "core:something") pass
-# through untouched, so core hooks stay hard-coded.
-# While no mod is loading (namespace None), unqualified strings are an error:
-# outside of mod loading, everything must be explicitly namespaced.
+# through untouched, so core hooks stay hard-coded. While no mod is loading
+# (namespace None), unqualified strings are an error.
 class Registry:
     def __init__(self):
         # ops -> {handlerName: {"func": callable, "namespace": str|None}}
         self._handlers = {"core:tick": {}}
         # Stack of active namespaces; top frames the mod currently loading.
-        # None (or empty) means "not loading a mod" — no implicit namespace.
         self._namespace_stack = []
 
     # -- Namespace management ---------------------------------------------------
     def push_namespace(self, namespace):
-        """Enter a mod's namespace. Call before loading a mod, pop after.
-
-        :param namespace: Namespace string from the mod's manifest.json
-        """
+        """Enter a mod's namespace. Call before loading a mod, pop after."""
         self._namespace_stack.append(namespace)
 
     def pop_namespace(self):
@@ -46,8 +41,7 @@ class Registry:
 
         Strings that already contain ":" (e.g. "core:tick") are returned
         unchanged. Qualified strings with a foreign namespace are also kept
-        as-is — cross-namespace references are allowed, the registry does not
-        police who may listen to whose ops.
+        as-is — cross-namespace references are allowed.
 
         :param name: Op or handler name to resolve
         :return: Fully-qualified name
@@ -71,14 +65,13 @@ class Registry:
     # can re-enter it later.
     def register_handler(self, op: str, func=None, name:str = None):
         """
-        Register a handler
+        Register a handler.
 
         Unqualified op/handler names are automatically prefixed with the
-        namespace of the mod being loaded (see manifest.json "namespace").
-        The handler remembers the namespace active at registration, and
-        dispatch() re-enters it while the handler runs — so the handler's
-        own unqualified names/keys keep resolving to its mod's namespace
-        even when dispatched long after loading.
+        namespace of the mod being loaded. The handler remembers the namespace
+        active at registration, so dispatch() re-enters it while the handler
+        runs — the handler's own unqualified names/keys keep resolving to its
+        mod's namespace even when dispatched long after loading.
 
         :param op: Name of event hook
         :param func: Function object of handler
@@ -91,45 +84,44 @@ class Registry:
         if name is not None:
             name = self._resolve(name)
             handlerName=name
-        #Create new event hook if not created
+        # Create new event hook if not created
         if not op in self._handlers:
             self._handlers[op]={}
             print(f"  Event Hook {op} created.")
-        #Exit early if no function is provided(only registers event hook)
+        # Exit early if no function is provided (only registers event hook)
         if func is None:
             return
-        #If name is not provided, replace with _lambda+unique function ID to prevent collision
+        # If name is not provided, use a unique id to prevent collision
         if handlerName==None:
             handlerName=f"_lambda_{id(func)}"
-        #Warn if another handler with same name already exists
+        # Warn if another handler with same name already exists
         if handlerName in self._handlers[op]:
             print(f"\033[33m    [WARN] Handler {handlerName} already registered under {op}, overwriting!\033[0m")
-        #Register function in _handlers
+        # Register function in _handlers
         self._handlers[op][handlerName]={"func":func,"namespace":handlerNamespace}
         print(f"    New handler {handlerName} registered under {op}.")
 
     # -- Handler retrieval ----------------------------------------------------------
-    # Looks up a handler record (or a whole op's dict) by name. Shared helper
-    # used by get_handler and dispatch.
+    # Looks up a handler record (or a whole op's dict) by name, shared by
+    # get_handler and dispatch.
     def get_handler(self, op:str, name:str = None):
         """
-        Get a handler
+        Get a handler.
 
         :param op: Event hook to look under
         :param name: Optional, name of handler to get
         :return: If name is provided, returns the handler record
         {"func", "namespace"} (use ["func"] for the callable).
         If name is not provided/None, returns full event hook of
-        handler+name as a dictionary.
-        Returns None if not found.
+        handler+name as a dictionary. Returns None if not found.
         """
         op = self._resolve(op)
         if name is not None:
             name = self._resolve(name)
-        #Return handler if name is provided
+        # Return handler if name is provided
         if name and op in self._handlers:
             return self._handlers[op].get(name)
-        #Return full dict under event hook(name not provided)
+        # Return full dict under event hook (name not provided)
         return self._handlers.get(op)
 
     # -- Dispatch -------------------------------------------------------------------
@@ -137,13 +129,12 @@ class Registry:
     # registered under, passing the game state and registry to the handler.
     def dispatch(self, op: str, gameState:GameState):
         """
-        Dispatch a hook/handler
+        Dispatch a hook/handler.
 
         Dispatch intentionally does NOT auto-namespace the op itself: op is
         used as given. But each handler is invoked inside the namespace it
         was registered under (None for core code), so its own unqualified
-        names/keys resolve to its mod's namespace at runtime — the "assume
-        the namespace it gets called in" behavior.
+        names/keys resolve to its mod's namespace at runtime.
 
         :param op: Event hook to dispatch
         """

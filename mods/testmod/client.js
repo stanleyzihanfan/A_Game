@@ -1,6 +1,6 @@
-// Test base game client mod (currently deprecated — kept for reference)
-// Runs via eval() after load_mod_js is received
-// Registers frontend WebSocket handlers for block_add and block_remove
+// Test base game client mod (deprecated — kept for reference)
+// Runs via eval() after load_mod_js is received.
+// Registers frontend WebSocket handlers for block_add and block_remove.
 
 // Storage of meshes & wireframes in scene
 let meshReference = new Map();
@@ -47,8 +47,8 @@ function block_remove(params) {
 }
 
 // Register handlers (deprecated — uncomment to bring testmod back).
-// Under auto-namespacing these would register under "testmod:block_add" /
-// "testmod:block_remove" (namespace comes from manifest.json), so whatever
-// dispatches them must use those fully-qualified forms.
+// Under auto-namespacing these register under "testmod:block_add" /
+// "testmod:block_remove", so whatever dispatches them must use those fully-
+// qualified forms.
 // wsRegistry.register_handler("block_add",block_add);
 // wsRegistry.register_handler("block_remove",block_remove);

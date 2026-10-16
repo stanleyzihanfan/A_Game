@@ -1,7 +1,7 @@
 // -- Pre-initialization bootstrap ----------------------------------------------
 // Sets up global error handlers, the client log WebSocket, the server
-// connection overlay, the THREE.js scene, and finally bootstraps the
-// game socket once the user submits server credentials.
+// connection overlay, the THREE.js scene, and finally bootstraps the game
+// socket once the user submits server credentials.
 window.onerror = function(msg, src, line, col, err) {
     const div = document.getElementById("errorlog");
     if (div) div.innerText += `ERROR: ${msg}\n  at ${src}:${line}:${col}\n`;
@@ -63,7 +63,7 @@ function sendClientLog(level, timestamp, args) {
 
 initLogSocket();
 
-//Derive web socket URL from API URL
+// Derive web socket URL from API URL
 function normalizeServerURL(input) {
     if (typeof input !== 'string') throw new TypeError("Input must be string!");
     let url = input.trim().replace(/\/+$/, "");        // strip trailing slash(es)
@@ -129,7 +129,7 @@ function getServerURL() {
 
 // -- Sequential dynamic script loader ------------------------------------------
 // Loads scripts one at a time, waiting for each to finish before starting the
-// next. Ensures socket is initialized before all scrips that require it runs.
+// next. Ensures the socket is initialized before all scripts that require it run.
 function loadScriptSequential(srcList) {
     return srcList.reduce((chain, src) => chain.then(() => new Promise((resolve, reject) => {
         const s = document.createElement("script");
@@ -151,10 +151,9 @@ let playerPassword = "";
 
 // -- THREE.js scene setup was moved into the scene_setup mod --------------------
 // (mods/scene_setup/client.js). It owns the scene, renderer, camera, lighting,
-// grid floor, resize handler, and voxel geometry/materials. Those objects are
-// attached to `window` (scene, renderer, camera, voxelGeo, voxelMat, edgeMat)
-// so the mod's player_position / testmod client scripts can still reference them
-// as bare globals, and so main.js's render loop can use them at runtime.
+// grid floor, and voxel geometry/materials. Those objects are attached to
+// `window` so the mod's other client scripts can still reference them as bare
+// globals, and so main.js's render loop can use them at runtime.
 
 // -- Bootstrap: resolve URL, open socket, then load the rest in order ----------
 (async () => {

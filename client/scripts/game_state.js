@@ -8,17 +8,14 @@
  * The FIRST element of a key decides its namespace. Mods get automatic
  * namespacing through the same active-namespace mechanism as the Registry:
  * while a mod's script runs (during mod loading), any UNQUALIFIED key — one
- * whose first element contains no ":" — is prefixed with that mod's
- * manifest namespace. Keys whose first element already contains ":"
- * (e.g. ["core:initialized"]) pass through untouched, so core keys stay
- * hard-coded.
+ * whose first element contains no ":" — is prefixed with that mod's manifest
+ * namespace. Keys whose first element already contains ":" pass through
+ * untouched, so core keys stay hard-coded.
  */
 class GameState {
     constructor() {
         this._state = {};
         // Stack of active mod namespaces (mirrors Registry._namespaceStack).
-        // Empty means "not inside mod code" — unqualified keys then reference
-        // core game data as before, preserving existing behavior.
         this._namespaceStack = [];
     }
 
@@ -51,8 +48,8 @@ class GameState {
      * Prefix an unqualified key's first element with the active namespace.
      *
      * A key is unqualified if its first element contains no ":". Qualified
-     * keys (e.g. ["core:initialized"]) are returned unchanged — this is
-     * what keeps all "core:something" usages working as before.
+     * keys (e.g. ["core:initialized"]) are returned unchanged — this is what
+     * keeps all "core:something" usages working as before.
      *
      * @param {Array} key - Key array to resolve
      * @returns {Array} New key array with first element namespaced if unqualified
@@ -66,10 +63,9 @@ class GameState {
     }
 
     /**
-     * Sets a key-value pair to game state
+     * Sets a key-value pair to game state.
      *
      * Unqualified keys are auto-namespaced with the active mod namespace.
-     *
      * @param {Array} key - Key to add
      * @param {*} value - Value to add
      * @param {boolean} [override=false] - Whether to override any conflicting leaves
@@ -91,12 +87,11 @@ class GameState {
     }
 
     /**
-     * Gets value for key
+     * Gets value for key.
      *
      * Unqualified keys are auto-namespaced with the active mod namespace.
-     *
      * @param {Array} key - Key to get value for
-     * @param {*} [defaultVal=true] - Default value
+     * @param {*} [defaultVal=null] - Default value
      * @returns {*} Returns value if key exists, else returns default
      */
     get(key,defaultVal=null) {
@@ -113,10 +108,9 @@ class GameState {
     }
 
     /**
-     * Get if a key exists
+     * Get if a key exists.
      *
      * Unqualified keys are auto-namespaced with the active mod namespace.
-     *
      * @param {Array} key - Key to check
      * @returns {boolean} Boolean if key exists or not
      */
@@ -133,7 +127,7 @@ class GameState {
     }
 
     /**
-     * Helper function to initialize a value if it does not exist, else do nothing
+     * Initialize a value if it does not exist, else do nothing.
      * @param {Array} key - key to initialize
      * @param {*} value - Value to initialize to
      */
@@ -143,7 +137,7 @@ class GameState {
     }
 
     /**
-     * Helper to return if key is pressed from gamestate
+     * Helper to return if key is pressed from gamestate.
      * @param {string} code key to look for
      * @returns Boolean value representing if key is pressed
      */
@@ -152,17 +146,16 @@ class GameState {
     }
 
     // -- Send/receive buffer helpers --------------------------------------------
-    // These wrap the client sync buffers so mods never have to touch raw
-    // "core:*" keys themselves. The buffers themselves live under fixed
-    // internal keys (created by main.js/initialization.js outside mod code),
-    // so these helpers access them explicitly and only the MESSAGE KEYS
-    // inside the buffers get auto-namespaced with the active mod namespace.
+    // These wrap the client sync buffers so mods never touch raw "core:*" keys.
+    // The buffers live under fixed internal keys (created by main.js/
+    // initialization.js outside mod code), so these helpers access them
+    // explicitly and only the MESSAGE KEYS inside get auto-namespaced.
     /**
      * Add a key-value pair to the send buffer for this tick.
      *
-     * The buffer is sent to the server once per tick and then cleared. The
-     * key is namespaced automatically ("mydata" -> "mymod:mydata"), so a mod
-     * can never collide with another mod's send keys.
+     * The buffer is sent to the server once per tick and then cleared. The key
+     * is namespaced automatically ("mydata" -> "mymod:mydata"), so a mod can
+     * never collide with another mod's send keys.
      * @param {string} key - Unqualified key to send under
      * @param {*} value - Value to send
      */
@@ -182,10 +175,10 @@ class GameState {
      * Read this mod's messages from the server receive buffer.
      *
      * Each tick the server pushes one payload dict per sync message; this
-     * helper collects the values stored under this mod's namespaced key
-     * across all buffered messages of the current tick.
-     * @param {string} [key] - Unqualified key to read (defaults to every
-     *                         key under this mod's namespace)
+     * helper collects the values stored under this mod's namespaced key across
+     * all buffered messages of the current tick.
+     * @param {string} [key] - Unqualified key to read (defaults to every key
+     *                         under this mod's namespace)
      * @returns {Array} List of values received for that key this tick
      */
     readServerMessages(key = null) {
@@ -210,9 +203,9 @@ class GameState {
     }
 
     /**
-     * Internal: raw get/set that bypass namespace resolution entirely.
-     * Used by the buffer helpers, which must always hit the core buffer
-     * locations no matter which mod is calling.
+     * Internal: raw get/set that bypass namespace resolution entirely. Used by
+     * the buffer helpers, which must always hit the core buffer locations no
+     * matter which mod is calling.
      */
     _rawGet(key, defaultVal = null) {
         let last = this._state;
@@ -242,8 +235,8 @@ class GameState {
     }
 
     /**
-     * Internal: resolve a single string key (not a key array) to its
-     * namespaced form.
+     * Internal: resolve a single string key (not a key array) to its namespaced
+     * form.
      * @param {string} key
      * @returns {string}
      */

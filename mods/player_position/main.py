@@ -12,11 +12,8 @@ explicitly qualified and pass through untouched.
 """
 import math
 
-# -- Debug helper (not registered) ----------------------------------------------
-# These two functions are standalone test scratch-pads, not wired into register().
-# testclient_server dumps whatever the clients sent; testserver_client pushes a
-# marker string out to every client. Kept as reference for debugging the
-# send/receive buffer helpers.
+# Debug helper (not registered): standalone scratch-pads for debugging the
+# send/receive buffer helpers. Kept as reference.
 def testclient_server(gamestate,registry):
     for entry in gamestate.get_client_messages():
         print(entry)
@@ -35,8 +32,7 @@ def onConnect(gamestate, registry):
     gamestate.initialize(["core:players", newPlayerName, "speed"], 8)
     gamestate.initialize(["core:players", newPlayerName, "yaw"], 0)
     gamestate.initialize(["core:players", newPlayerName, "pitch"], 0)
-    # Deliver the initialized player state to the just-connected client as a
-    # one-time init message.
+    # Deliver the initialized player state as a one-time init message.
     gamestate.add_to_client_sync("pos", gamestate.get(["core:players", newPlayerName, "pos"]))
 
 # -- Movement handler --------------------------------------------------------------
@@ -46,7 +42,7 @@ def onConnect(gamestate, registry):
 def updatePlayerPosition(gamestate, registry):
     """Process movement input from clients and update their world positions."""
     # The client sends this mod's movement data under the namespaced key
-    # ("movement_handler" -> "player_position:movement_handler" on the client).
+    # ("movement_handler" -> "player_position:movement_handler").
     ns = registry.current_namespace()
     for data in gamestate.get_client_messages():
         moveState = data["data"].get(f"{ns}:movement_handler")
@@ -71,7 +67,7 @@ def updatePlayerPosition(gamestate, registry):
         if positionUpdateData["up"]:      dy += dist
         if positionUpdateData["down"]:    dy -= dist
 
-        #Save player position & look direction data to be persistant in game state
+        # Save position & look direction so it persists in game state
         pos = gamestate.get(["core:players", data["playerName"], "pos"])
         pos["x"] += dx; pos["y"] += dy; pos["z"] += dz
         pos["yaw"] = yaw

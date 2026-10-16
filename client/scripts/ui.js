@@ -21,8 +21,7 @@
  *     own unqualified ui names and game-state keys keep resolving to its mod's
  *     namespace at runtime.
  *
- * There is currently NO automatic client-side lifecycle hook (the server has
- * core:on_player_disconnect but the client has no parallel), so unmountAll()
+ * There is currently NO automatic client-side lifecycle hook, so unmountAll()
  * is available for mods/core to tear down every view on their own terms.
  */
 class UIRegistry {
@@ -37,7 +36,6 @@ class UIRegistry {
         this._styles = [];
         this._uid = 0;
         // Stack of active mod namespaces (mirrors Registry / GameState).
-        // Empty means "not inside mod code" — unqualified names then error.
         this._namespaceStack = [];
         // Default mount container (#ui-root in frontend.html). Cached; may be
         // swapped with setRoot().
@@ -410,9 +408,6 @@ class UIRegistry {
      * set(), on(), unmount() — works even after the namespace stack is empty,
      * because each call re-enters the captured namespace internally.
      *
-     * Callers should hold the returned handle and mutate it during gameplay
-     * instead of re-resolving names at runtime.
-     *
      * @param {string} name - View name (resolved against the active namespace now)
      * @param {(ui:UIRegistry, args:any, container:HTMLElement)=>Node|string} buildFn
      * @param {object} [opts]
@@ -499,12 +494,12 @@ class UIRegistry {
 }
 
 // -- Instance + global exposure --------------------------------------------------
-// Bootstrap scripts (pre_initialization.js, main.js) are classic <script> tags, so
-// a top-level `const` here becomes a global lexical binding visible as a bare
+// Bootstrap scripts (pre_initialization.js, main.js) are classic <script> tags,
+// so a top-level `const` here becomes a global lexical binding visible as a bare
 // identifier to later scripts AND to eval()'d mod code (same trick as wsRegistry /
-// gameState). We also attach it to `window` (like window.renderer in scene_setup)
-// so the ws Registry can re-enter its namespace at dispatch time even though the
-// Registry source was loaded before this file.
+// gameState). We also attach it to `window` so the ws Registry can re-enter its
+// namespace at dispatch time even though the Registry source was loaded before
+// this file.
 const uiRegistry = new UIRegistry();
 window.uiRegistry = uiRegistry;
 // Convenience alias mods can use in templates/builders.

@@ -14,8 +14,7 @@ from server.ws_registry import Registry
 from server.game_state import GameState
 from server.mod_loader import load_mods
 
-# Resolve project root (one level up from server/)
-# so file paths work regardless of where the script is launched from (Colab, PC, etc.)
+# Resolve project root so file paths work regardless of launch location.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # -- Flask & WebSocket setup ---------------------------------------------------
@@ -24,29 +23,17 @@ CORS(app)
 wSocket = Sock(app)
 
 # -- Global state ------------------------------------------------------------
-# Main game tick thread (created at import, started in start())
-tick_thread = None
-
-# Mod WebSocket handler registry; holds mod-registered op handlers
-registry = Registry()
-
-# Central game state store (world/player data + runtime values)
-game_state = GameState()
-
-# Loaded mod manifests; tells core which client.js files to stream to clients
-loaded_mods = []
-
-# Active WebSocket connections: {playerName: {"socket": ws, "status": ...}}
-active_connections = {}
+tick_thread = None                    # main game tick thread (started in start())
+registry = Registry()                 # mod op handler registry
+game_state = GameState()              # central world/player state store
+loaded_mods = []                      # loaded manifests -> which client.js to stream
+active_connections = {}               # {playerName: {"socket": ws, "status": ...}}
 active_connections_lock = threading.Lock()
-
-# Underlying Flask/Werkzeug server object (set in start(), used by shutdown())
-flask_server = None
+flask_server = None                   # Flask/Werkzeug server (set in start())
 
 # -- Binary packaging functions ------------------------------------------------
 # The game protocol speaks msgpack over WebSocket. encode/decode wrap the
-# library calls so every other module uses these helpers rather than msgpack
-# directly (matching the client-side msgpack-lite usage).
+# library calls so every module uses these helpers rather than msgpack directly.
 def encode(data):
     return msgpack.packb(data, use_bin_type=True)
 
@@ -54,8 +41,6 @@ def decode(data):
     return msgpack.unpackb(data, raw=False)
 
 # -- Flask routes --------------------------------------------------------------
-# Root route is just a health check saying the backend is alive; the real
-# frontend page is served by the separate client asset server (client/launcher.py).
 @app.route("/")
 def index():
     return Response("<html><body>Server is running.</body></html>", mimetype="text/html")
@@ -73,10 +58,7 @@ def _send_mod_scripts(ws):
     for manifest in loaded_mods:
         client_js = manifest.get("client_js")
         if not client_js:
-            # No client_js in the manifest (absent or empty) means the mod is
-            # server-side only, so there is nothing to stream and no warning
-            # should be emitted (mirrors the silent backend_py skip for
-            # client-side-only mods in mod_loader.load_mods).
+            # No client_js means server-side only; nothing to stream, no warning.
             continue
         js_path = os.path.join(manifest["_mod_path"], client_js)
         if not os.path.isfile(js_path):
@@ -91,8 +73,7 @@ def _send_mod_scripts(ws):
 @wSocket.route("/server")
 def server(ws):
     # playerName is referenced by the cleanup in `finally`; initialize up front
-    # so a connection that aborts during the handshake (before we learn the
-    # player's name) doesn't hit a NameError on teardown.
+    # so a connection that aborts during the handshake doesn't raise a NameError.
     playerName = None
     try:
         # -- Handshake step 1: request client init --------------------------
@@ -116,12 +97,11 @@ def server(ws):
         with active_connections_lock:
             active_connections[playerName] = {"socket": ws, "status": "pre-connect"}
         print(f"Client {playerName} connected.")
-        # Connection-acceptance/validation logic now lives in the connect_guard
-        # mod. Core owns the socket lifecycle; it sets up a request context,
-        # dispatches the "core:on_player_connect_request" hook, then enforces
-        # the mod's decision (performing the actual ws.close() on rejection).
-        # If no guard mod is loaded the decision stays None and the connection
-        # is accepted — so absence of the mod simply means "no connect guard".
+        # Connection-acceptance logic lives in the connect_guard mod. Core owns
+        # the socket lifecycle: it sets up a request context, dispatches
+        # "core:on_player_connect_request", then enforces the mod's decision
+        # (performing the actual ws.close() on rejection). If no guard mod is
+        # loaded the decision stays None and the connection is accepted.
         with game_state._lock:
             game_state.set(["core:connect_request"], {
                 "playerName": playerName,
@@ -155,14 +135,13 @@ def server(ws):
         # -- Handshake step 5: run connect handlers, deliver one-time init -----
         with game_state._lock:
             game_state.set(["core:players", "newPlayerName"], playerName)
-            # Set up the per-client sync payload for the connecting client so
-            # mods can call add_to_client_sync() inside their
-            # core:on_player_connect handler and have the data delivered to
-            # this newly-connected client as a one-time init message.
+            # Set up the per-client sync payload so mods can call
+            # add_to_client_sync() in their core:on_player_connect handler and
+            # have the data delivered to this client as a one-time init message.
             game_state.set(["core:per_client_sync"], {"player": playerName, "data": {}})
             registry.dispatch("core:on_player_connect", game_state)
-            # Flush any data the connect handlers added into the payload to
-            # this specific client, then clear it (never reused across clients).
+            # Flush any data the connect handlers added into the payload, then
+            # clear it (never reused across clients).
             init_payload = game_state.get(["core:per_client_sync", "data"])
             if init_payload:
                 ws.send(encode({"op": "core:sync_with_client", "data": init_payload}))
@@ -183,13 +162,13 @@ def server(ws):
                 game_state.get(["core:client_receive_buffer"], False, False).append({"playerName": playerName, "data": data["params"]})
     finally:
         # -- Disconnect cleanup --------------------------------------------------
-        # Notify mods first (they may need to run their own cleanup), then remove
-        # the socket from active_connections and mark the player offline.
+        # Notify mods first (they may need their own cleanup), then remove the
+        # socket from active_connections and mark the player offline.
         with game_state._lock:
             game_state.set(["core:players", "disconnectPlayerName"], playerName)
             registry.dispatch("core:on_player_disconnect", game_state)
             game_state.set(["core:players", "disconnectPlayerName"], "")
-        # If playerName is None the websocket closed before it was ever added to
+        # If playerName is None the socket closed before it was added to
         # active_connections, so there is nothing to remove or mark offline.
         if playerName is not None:
             with active_connections_lock:
@@ -199,12 +178,7 @@ def server(ws):
             print(f"Client {playerName} disconnected.")
 
 def find_port(start=5000):
-    """Find open port for Flask server\n
-    If current port isn't open, repeatedly increments port number by 1 until open port is found
-
-    :param start: First port to search
-    :return: Number of first open port found
-    """
+    """Find the first open port at or after `start`."""
     port = start
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -216,9 +190,8 @@ def find_port(start=5000):
                 port += 1
 
 # -- Game tick loop ------------------------------------------------------------
-# Fixed-timestep game loop. Each tick: (1) let mods process world/player state,
-# (2) push any global broadcast data to every ready client, (3) compute and send
-# per-client display data, then (4) clear the client receive buffer.
+# Fixed-timestep loop: (1) dispatch tick handlers, (2) broadcast global data,
+# (3) compute per-client display data, then (4) clear the receive buffer.
 def start_tick(interval):
     print("Started game...")
     lastTime = datetime.now()
@@ -275,9 +248,7 @@ tick_thread = threading.Thread(target=start_tick, args=(0.05,), daemon=True)
 def start():
     """Server startup: load mods, find a free port, launch Flask, start the tick thread."""
     global flask_server, loaded_mods
-    # Load mods (game_state passed so mod keys get namespaced during loading too)
     loaded_mods = load_mods(registry, game_state)
-    # Launch the Flask server (serves the game WebSocket, not the HTML page)
     port = find_port()
     print(f"Port {port} open, launching server")
     flask_server = make_server("0.0.0.0", port, app, threaded=True)

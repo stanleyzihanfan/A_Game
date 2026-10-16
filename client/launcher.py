@@ -35,9 +35,7 @@ def index():
 
 @app.route("/<path:filename>")
 def static_file(filename):
-    # Serve static files from project root
     filepath = os.path.join(BASE_DIR, filename)
-    # Auto-detect mimetype from file extension
     mimetype, _ = mimetypes.guess_type(filepath)
     if not mimetype:
         mimetype = "text/plain"
@@ -51,9 +49,9 @@ def static_file(filename):
 # console logs here so they appear in the terminal that launched this server.
 @wSocket.route("/clientlog")
 def clientlog(ws):
-    """Receives console.log/warn/error + window.onerror/onunhandledrejection
-    from the browser client and prints them to whichever terminal launched
-    this client asset server. Independent of the game server's WebSocket."""
+    """Receive browser console/warn/error + onerror/onunhandledrejection and print
+    them to the terminal that launched this client asset server. Independent of the
+    game server's WebSocket."""
     with active_log_connections_lock:
         active_log_connections.add(ws)
     try:
@@ -83,12 +81,7 @@ def clientlog(ws):
 # -- Port finder -----------------------------------------------------------------
 # Shared helper: find a free TCP port, incrementing until one is open.
 def find_port(start=8000):
-    """Find open port for Flask server\n
-    If current port isn't open, repeatedly increments port number by 1 until open port is found
-
-    :param start: First port to search
-    :return: Number of first open port found
-    """
+    """Find the first open port at or after `start`."""
     port = start
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

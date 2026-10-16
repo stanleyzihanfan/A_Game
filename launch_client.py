@@ -13,7 +13,6 @@ parser.add_argument("--tunnel", action="store_true", help="Expose client page vi
 args = parser.parse_args()
 
 # -- Cloudflared discovery -------------------------------------------------------
-# Helper function to locate the cloudflared binary for tunneling.
 def find_cloudflared():
     candidates = [
         "/usr/local/bin/cloudflared",
