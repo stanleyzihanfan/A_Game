@@ -17,6 +17,7 @@ handler is called as `func(gameState, registry)`.
 
 | Hook | When it fires | Purpose / notes |
 |---|---|---|
+| `core:on_mods_loaded` | Once, immediately after every mod's `register()` has run (in `server/core.py` `start()`, before the server accepts any connection). | Initialize server-side gamestate and cross-mod setup that needs all mods registered first. Handlers run inside their own namespace, **in mod load order** (dependency ordering still applies: a mod that depends on another has its handler registered later, so it runs after its dependency's handler — and can read that dependency's freshly-initialized state). A failing handler is logged but does not stop startup. |
 | `core:tick` | Every game tick (default 0.05s). | Per-tick server logic: process input, integrate world/player state. This is the main server work loop. |
 | `core:on_player_connect_request` | During the handshake, *before* the WebSocket is accepted. | The **connect-guard** decision point. The engine sets `["core:connect_request"]` with `playerName`, `psw`, `approved`, `reason`, `code`; your handler validates and writes back the decision. Core performs the actual `ws.close()` if `approved` is `False`. |
 | `core:on_player_connect` | After the client finishes loading (`client_init_done` received), before the one-time init is sent. | Initialize a new player's state and push one-time data via `add_to_client_sync` (delivered as the client's `core:init`). |
@@ -56,6 +57,7 @@ These are dispatched in `client/scripts/main.js` and
 
 | Hook | When it fires | Purpose / notes |
 |---|---|---|
+| `core:on_mods_loaded` | Once, immediately after every mod's client script has been `eval()`ed (in `onModsReady`, before the socket handoff and render loop). | Initialize client-side state that needs all mods registered first. Handlers run inside their own namespace, **in mod load order** (the server streams scripts in dependency-sorted load order, and handlers are registered in that order, so one depending on another runs after its dependency). A failing handler is logged but does not break the client load. |
 | `core:tick` | Every client tick (fixed `1/20`). | Per-tick client logic: collect input, read server messages, update the scene. Dispatched only after `["core:initialized"]` is true. |
 | `core:init` | Once, on the first `core:sync_with_client` message after `mods_ready`. | Apply the one-time init payload from the server (e.g. detect initial player position/look). |
 | `core:update_camera` | Every render frame (`requestAnimationFrame`), in the render loop. | Apply camera transform. Dispatched by `main.js` right before `renderer.render(...)`. |

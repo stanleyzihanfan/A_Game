@@ -69,3 +69,31 @@ Each mod is a folder under `mods/` containing a `manifest.json` that declares a
 `modID`, an optional `namespace` (defaults to `modID`), a backend `main.py`
 (exposes a `register(registry)` function), and an optional `client.js` (eval()ed
 on the client). See `server/mod_loader.py` for details.
+
+## Documentation server
+
+The modding API reference (`docs/`) is a standalone MkDocs site built from
+`mkdocs.yml`. It has its own virtualenv at `.venv-docs/` so its dependencies
+don't clash with the game's runtime.
+
+Start the local docs server:
+
+```bash
+./.venv-docs/bin/mkdocs serve
+```
+
+This builds the site and serves it at `http://127.0.0.1:8000/` with live reload,
+so edits to `docs/` are rebuilt automatically as you save.
+
+By default it binds to the same port (8000) as the client asset server, so if
+the client is already running, pick a different port:
+
+```bash
+./.venv-docs/bin/mkdocs serve -a 127.0.0.1:8001
+```
+
+To build the site once as static files (output to `site/`), run:
+
+```bash
+./.venv-docs/bin/mkdocs build
+```

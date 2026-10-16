@@ -51,6 +51,16 @@ function initClient() {
 function onModsReady() {
     console.log(`Client loading complete`);
     gameState.set(["core:initialized"],false,true);
+    // -- Post-load hook ----------------------------------------------------------
+    // Fires once, immediately after every mod's client script has been eval()ed
+    // and registered, so mods can initialize their client-side state before the
+    // socket handoff and the render loop start. Handlers are invoked inside their
+    // own namespace. A failing handler is logged but doesn't break the handoff.
+    try {
+        wsRegistry.dispatch("core:on_mods_loaded", gameState);
+    } catch (e) {
+        console.error("  A mod's 'core:on_mods_loaded' handler failed; continuing client load");
+    }
     // Hand off WebSocket message handling to gamestate
     socket.onmessage = (e) => {
         const msg = msgpack.decode(new Uint8Array(e.data));

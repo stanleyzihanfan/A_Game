@@ -1,3 +1,13 @@
 {
-    
+    "modID": "relativeDisplayLib",
+    "namespace": "relDisLib",
+    "name": "Relative Dsiplay Library",
+    "version": "0.1.0-alpha",
+    "description": "Library mod for relative display calculations",
+    "author": "Eyeseminal",
+    "backend_py": "main.py",
+    "client_js": "client.js",
+    "enabled": true,
+    "dependencies": [],
+    "incompatibilities": []
 }

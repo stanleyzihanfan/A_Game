@@ -249,6 +249,18 @@ def start():
     """Server startup: load mods, find a free port, launch Flask, start the tick thread."""
     global flask_server, loaded_mods
     loaded_mods = load_mods(registry, game_state)
+    # -- Post-load hook ----------------------------------------------------------
+    # Fires once, immediately after every mod has been registered, so mods can
+    # initialize their server-side gamestate before the server accepts
+    # connections. Handlers are invoked inside their own namespace. A failing
+    # handler is logged but doesn't stop the server from starting.
+    try:
+        with game_state._lock:
+            registry.dispatch("core:on_mods_loaded", game_state)
+    except Exception as e:
+        if "Handled" not in getattr(e, "__notes__", []):
+            traceback.print_exc()
+        print("\033[33m  A mod's 'core:on_mods_loaded' handler failed; continuing startup\033[0m")
     port = find_port()
     print(f"Port {port} open, launching server")
     flask_server = make_server("0.0.0.0", port, app, threaded=True)
