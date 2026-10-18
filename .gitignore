@@ -6,3 +6,6 @@ __pycache__/
 .venv-docs/
 site/
 agents.md
+# Engine staging/working dirs (build artifacts, not part of the game)
+.engine_repo/
+.engine_staging/
