@@ -1,17 +1,23 @@
 # A-Game
 
-A voxel/block game with a moddable client-server architecture. The engine is
-split into two separate processes:
+A voxel/block game built on **Unboxed-Engine** — a reusable, moddable
+client-server game engine. This repo is the game itself: it vendors the engine
+as an `engine/` subtree and adds the game's own mods in `mods/`.
 
-- **Backend (`server/`)** — a Flask server that owns the game WebSocket, runs
-  the fixed-timestep tick loop, holds authoritative game state, and loads mods.
-- **Client (`client/`)** — a separate Flask asset server that serves the HTML
-  page (`client/frontend.html`) plus static JS/CSS, and provides a WebSocket
-  endpoint that relays browser console logs to the terminal.
+The engine is split into two separate processes:
+
+- **Backend (`engine/server/`)** — a Flask server that owns the game WebSocket,
+  runs the fixed-timestep tick loop, holds authoritative game state, and loads
+  mods.
+- **Client (`engine/client/`)** — a separate Flask asset server that serves the
+  HTML page (`engine/client/frontend.html`) plus static JS/CSS, and provides a
+  WebSocket endpoint that relays browser console logs to the terminal.
 
 Both are launched from the repository root via `launch_server.py` and
-`launch_client.py`. Mods live in `mods/` and are auto-discovered from their
-`manifest.json` (see `server/mod_loader.py`).
+`launch_client.py`. The root launchers set the `UNBOXED_MODS_DIR` env var to
+this game's `mods/` folder, then delegate to the engine launchers under
+`engine/`. Mods live in `mods/` and are auto-discovered from their
+`manifest.json` (see `engine/server/mod_loader.py`).
 
 ## Quick start
 
@@ -49,51 +55,44 @@ python3 launch_client.py --tunnel
 ## Layout
 
 ```
-server/          Backend engine (Flask + WebSocket + tick loop + mod loader)
-  core.py        Server lifecycle, the /server WebSocket, handshake, tick loop
-  game_state.py  Thread-safe namespaced key-value store
-  ws_registry.py Central op handler registry for mods
-  mod_loader.py  Discovers and loads mods from the /mods directory
-client/          Client asset server + browser frontend
-  launcher.py    Serves frontend.html, static files, and the /clientlog socket
-  frontend.html  HTML page
-  scripts/       Core JS (game_state.js, client_ws_registry.js, main.js, ...)
-mods/            Mods, each a folder with a manifest.json + backend/client code
-launch_server.py Backend entry point
-launch_client.py Client entry point
+engine/           Vendored Unboxed-Engine (git subtree; reusable, sandbox-free)
+  server/         Backend engine (Flask + WebSocket + tick loop + mod loader)
+  client/         Client asset server + browser frontend
+  docs/           Modding API reference (built with MkDocs)
+  launch_server.py  Engine backend entry point
+  launch_client.py  Engine client entry point
+mods/             This game's mods, each a folder with manifest.json + code
+launch_server.py  Game root launcher (sets UNBOXED_MODS_DIR=mods, delegates)
+launch_client.py  Game root launcher (sets UNBOXED_MODS_DIR=mods, delegates)
 ```
+
+The `engine/` folder is a subtree of the
+[`Unboxed-Engine`](https://github.com/stanleyzihanfan/Unboxed-Engine) repo. To
+update the engine, `git subtree pull` it from that repo; keeping the game's
+mods in `mods/` (outside the engine subtree) means engine updates never touch
+them.
 
 ## Mods
 
 Each mod is a folder under `mods/` containing a `manifest.json` that declares a
 `modID`, an optional `namespace` (defaults to `modID`), a backend `main.py`
 (exposes a `register(registry)` function), and an optional `client.js` (eval()ed
-on the client). See `server/mod_loader.py` for details.
+on the client). See `engine/server/mod_loader.py` for details.
 
-## Documentation server
+## Documentation
 
-The modding API reference (`docs/`) is a standalone MkDocs site built from
-`mkdocs.yml`. It has its own virtualenv at `.venv-docs/` so its dependencies
-don't clash with the game's runtime.
+The modding API reference (`engine/docs/`) is a standalone MkDocs site built
+from `engine/mkdocs.yml`. It has its own virtualenv at `.venv-docs/` so its
+dependencies don't clash with the game's runtime.
 
 Start the local docs server:
 
 ```bash
-./.venv-docs/bin/mkdocs serve
-```
-
-This builds the site and serves it at `http://127.0.0.1:8000/` with live reload,
-so edits to `docs/` are rebuilt automatically as you save.
-
-By default it binds to the same port (8000) as the client asset server, so if
-the client is already running, pick a different port:
-
-```bash
-./.venv-docs/bin/mkdocs serve -a 127.0.0.1:8001
+./.venv-docs/bin/mkdocs serve --config-file engine/mkdocs.yml --docs-dir engine/docs
 ```
 
 To build the site once as static files (output to `site/`), run:
 
 ```bash
-./.venv-docs/bin/mkdocs build
+./.venv-docs/bin/mkdocs build --config-file engine/mkdocs.yml --docs-dir engine/docs
 ```
