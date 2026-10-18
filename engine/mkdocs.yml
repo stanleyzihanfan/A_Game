@@ -62,4 +62,5 @@ nav:
       - GameState: client_game_state.md
       - uiRegistry: client_ui_registry.md
   - Event Hooks: hooks.md
+  - Example Mod: example_mod.md
   - Wire Protocol: wire_protocol.md
