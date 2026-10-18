@@ -1,0 +1,12 @@
+{
+    "modID": "example_mod",
+    "namespace": "example_mod",
+    "name": "Example Mod",
+    "version": "0.1.0",
+    "description": "A walkthrough mod that showcases the engine's modding API: server Registry + GameState, client wsRegistry + GameState + uiRegistry, custom event hooks, and server<->client sync. Load this in a bare engine (no UNBOXED_MODS_DIR) to see it run with zero game content.",
+    "author": "Unboxed-Engine",
+    "backend_py": "main.py",
+    "client_js": "client.js",
+    "dependencies": [],
+    "incompatibilities": []
+}

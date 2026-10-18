@@ -14,11 +14,15 @@ The engine is split into two separate processes:
   endpoint that relays browser console logs to the terminal.
 
 Both are launched from the engine root via `launch_server.py` and
-`launch_client.py`. **The engine ships with no mods.** Mods live in a mods
-folder and are auto-discovered from their `manifest.json` (see
-`server/mod_loader.py`).
+`launch_client.py`. **The engine ships with no game content.** It carries one
+reference mod, `mods/example_mod/`, that demonstrates the full modding API
+(server `Registry` + `GameState`, client `wsRegistry` + `GameState` +
+`uiRegistry`, custom event hooks, and server↔client sync). A game vendors the
+engine and points it at its *own* mods folder — see
+[Using the engine from a game](#using-the-engine-from-a-game-embedding). Mods
+are auto-discovered from their `manifest.json` (see `server/mod_loader.py`).
 
-## Quick start (run the engine with no mods)
+## Quick start (run the engine)
 
 Install dependencies:
 
@@ -54,8 +58,34 @@ variable (or creates a `mods/` folder next to the engine). For example:
 UNBOXED_MODS_DIR="$PWD/mods" python3 engine/launch_server.py
 ```
 
-The engine's `server`/`client` packages resolve from the engine root, so they
-work both standalone (`import server`) and when vendored (`import engine.server`).
+Setting `UNBOXED_MODS_DIR` overrides the engine's default mods folder, so the
+vendored engine ignores `engine/mods/` (including `mods/example_mod/`) and
+loads only the game's mods. The engine's `server`/`client` packages resolve
+from the engine root, so they work both standalone (`import server`) and when
+vendored (`import engine.server`).
+
+## Reference mod
+
+`mods/example_mod/` is a self-contained walkthrough of the modding API. It runs
+against a bare engine (no game content) because every handler is defensive — it
+never assumes a scene, camera, or player exists. Read it top-to-bottom to see:
+
+- **`main.py` (server)** — `register(registry)`, the `Registry` API
+  (`register_handler` / `dispatch` / `get_handler`), the `GameState` API
+  (`get` / `set` / `initialize` / `exists`), reading client input
+  (`get_client_messages`), syncing out (`add_to_broadcast` /
+  `add_to_client_sync`), the server hooks
+  (`core:on_mods_loaded`, `core:on_player_connect`, `core:tick`,
+  `core:calculate_client_display`, `core:on_player_disconnect`), and a mod-owned
+  custom event hook.
+- **`client.js` (frontend)** — `wsRegistry` handlers on
+  (`core:init`, `core:tick`, `core:update_camera`, `core:on_disconnect`) and a
+  custom hook, the `gameState` API (`get` / `set`, `isKeyDown`,
+  `addToSendBuffer`, `readServerMessages`), and the `uiRegistry` API
+  (`createView` + bound handle, `bindEvent`, `register_style`).
+
+The full API reference is in `docs/` (see
+[Documentation server](#documentation-server)).
 
 ## Layout
 
@@ -71,6 +101,7 @@ client/          Client asset server + browser frontend
   scripts/       Core JS (game_state.js, client_ws_registry.js, main.js, ...)
 launch_server.py Backend entry point
 launch_client.py Client entry point
+mods/            Reference mods (ships with mods/example_mod, a full API walkthrough)
 docs/            Modding API reference (built with MkDocs)
 ```
 
@@ -82,6 +113,11 @@ Each mod is a folder under the game's mods directory (set via
 `modID`), a backend `main.py` (exposes a `register(registry)` function), and an
 optional `client.js` (eval()ed on the client). See `server/mod_loader.py` for
 details. The full modding API reference lives in `docs/`.
+
+To write your own mod, start from `mods/example_mod/` — copy the folder, rename
+it, and edit the manifest + files. The example is self-contained and defensive,
+so it runs against a bare engine, and every registry/state API it uses is
+documented in `docs/`.
 
 ## Documentation server
 
