@@ -128,6 +128,26 @@ It is `eval()`ed during the handshake.
 - **Absent or empty string** → the mod is **server-side only**; nothing is
   streamed and no warning is emitted.
 
+### `client_preload_js` — optional
+Path (relative to the mod folder) to a JavaScript file that the **client asset
+server** injects into the frontend page **before** the bootstrap scripts run.
+This is for code that must exist *before* any connection is made — most
+notably the pre-connection screen (server link, player name, password).
+
+Unlike `client_js`, a preload script is **not** streamed over the WebSocket and
+is **not** auto-namespaced. The client asset server (`client/launcher.py`) reads
+this field from the mod's `manifest.json` (in the mods directory the game points
+at via `PROTEAN_MODS_DIR`), injects a `<script src="...">` tag for it right after
+`<body>`, and serves the file itself through its catch-all route from the mods
+directory. The mod should register a provider on `window` (e.g.
+`window.connectScreenProvider`) that the bootstrap can call at load time.
+
+- **Absent or empty string** → no preload script is injected.
+- If the field is set but the file is missing, the client asset server prints a
+  warning.
+- The manifest's `enabled` flag is respected: a disabled mod's preload script is
+  not injected.
+
 ### `enabled` — optional, defaults to `true`
 When `false`, the mod is **not loaded at all**: its backend is not imported, no
 handlers are registered, and its `client.js` is not streamed. Its files and code
@@ -247,8 +267,26 @@ Semantics:
 }
 ```
 
+### Pre-connect (preload) only
+```json
+{
+    "modID": "connect_screen",
+    "namespace": "connect_screen",
+    "name": "Connection Screen",
+    "version": "0.1.0",
+    "description": "Owns the pre-connect screen (server link, player name, password)",
+    "author": "A_Game",
+    "backend_py": "",
+    "client_js": "",
+    "client_preload_js": "client_preload.js",
+    "dependencies": []
+}
+```
+
 A mod with both halves sets both `backend_py` and `client_js` (see
-`mods/player_position/manifest.json`).
+`mods/player_position/manifest.json`). A mod that owns pre-connection UI (like
+the connect screen) sets `client_preload_js` instead of (or in addition to)
+`client_js`.
 
 ## The `register()` contract
 

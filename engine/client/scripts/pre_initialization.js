@@ -63,68 +63,19 @@ function sendClientLog(level, timestamp, args) {
 
 initLogSocket();
 
-// Derive web socket URL from API URL
-function normalizeServerURL(input) {
-    if (typeof input !== 'string') throw new TypeError("Input must be string!");
-    let url = input.trim().replace(/\/+$/, "");        // strip trailing slash(es)
-    if (!url) throw new Error("URL cannot be empty");
-    url = url.replace(/^https/, "wss").replace(/^http/, "ws");
-    console.log(url+"/server");
-    return url + "/server";
-}
-
 // -- Connection Screen ---------------------
+// The pre-connection screen (server URL, player name, password) is now owned by
+// a mod's client_preload script (e.g. mods/connect_screen/client_preload.js),
+// which runs before this file and installs itself on window.connectScreenProvider.
+// The bootstrap simply awaits that provider. If no mod provides a connect screen,
+// we resolve with an error (there is no server link to connect to).
 function getServerURL() {
-    return new Promise((resolve) => {
-        const overlay = document.getElementById("server-connect-overlay");
-        const input = document.getElementById("server-url-input");
-        const nameInput = document.getElementById("player-name-input");
-        const passwordInput = document.getElementById("player-password-input");
-        const button = document.getElementById("server-url-submit");
-        const errorDiv = document.getElementById("server-url-error");
-
-        input.value = localStorage.getItem("serverURL") || "";
-        nameInput.value = localStorage.getItem("playerName") || "";
-
-        function submit() {
-            console.log("submit");
-            const raw = input.value.trim();
-            const playerName = nameInput.value.trim();
-            const password = passwordInput.value; // not trimmed — spaces may be intentional
-
-            if (!raw) {
-                errorDiv.innerText = "Please enter a server link.";
-                return;
-            }
-            let normalized;
-            try {
-                normalized = normalizeServerURL(raw);
-            } catch (e) {
-                errorDiv.innerText = `Invalid URL: ${e.message}`;
-                return;
-            }
-
-            localStorage.setItem("serverURL", raw);
-            localStorage.setItem("playerName", playerName);
-            // password intentionally not persisted
-
-            overlay.style.display = "none";
-            button.removeEventListener("click", submit);
-            input.removeEventListener("keydown", onKeydown);
-            nameInput.removeEventListener("keydown", onKeydown);
-            passwordInput.removeEventListener("keydown", onKeydown);
-
-            resolve({ url: normalized, playerName, password });
-        }
-        function onKeydown(e) {
-            if (e.key === "Enter") submit();
-        }
-
-        button.addEventListener("click", submit);
-        input.addEventListener("keydown", onKeydown);
-        nameInput.addEventListener("keydown", onKeydown);
-        passwordInput.addEventListener("keydown", onKeydown);
-    });
+    if (typeof window.connectScreenProvider === "function") {
+        return window.connectScreenProvider();
+    }
+    return Promise.reject(new Error(
+        "No connect screen provider found. A mod that declares 'client_preload_js' must install itself on window.connectScreenProvider."
+    ));
 }
 
 // -- Sequential dynamic script loader ------------------------------------------

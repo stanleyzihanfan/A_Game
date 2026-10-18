@@ -16,22 +16,9 @@
      overlay, so it is visible during gameplay but hidden behind the login. -->
 <div id="ui-root"></div>
 
-<!-- Server connect overlay: replaces window.prompt, works in any webview -->
-<div id="server-connect-overlay">
-    <div id="server-connect-box">
-        <label for="server-url-input">Enter server API link:</label>
-        <input type="text" id="server-url-input" placeholder="https://xxxx.trycloudflare.com or http://localhost:5000">
-
-        <label for="player-name-input">Player name:</label>
-        <input type="text" id="player-name-input" placeholder="Enter a name">
-
-        <label for="player-password-input">Password:</label>
-        <input type="password" id="player-password-input" placeholder="Password">
-
-        <button id="server-url-submit">Connect</button>
-        <div id="server-url-error"></div>
-    </div>
-</div>
+<!-- The pre-connection screen is owned by a mod (mods/connect_screen), which
+     injects its overlay at runtime via client_preload_js. No hardcoded connect
+     UI lives here anymore. -->
 
 <!--            JS Scripts            -->
 

@@ -53,6 +53,14 @@ with only `client_js` is client-side only.
 3. It `eval()`s the script.
 4. After `eval()`, all three namespaces are popped.
 
+**Preload scripts** (`client_preload_js` in the manifest) are different: the
+client asset server injects them into the page **before** the bootstrap scripts
+run, so they execute before any WebSocket connection is made. They are **not**
+namespaced and **not** streamed over the socket — they are served by the client
+asset server from the mods directory. This is how a mod owns the pre-connection
+screen: it installs a provider on `window` (e.g. `window.connectScreenProvider`)
+that the bootstrap awaits before opening the socket.
+
 Because client scripts are `eval()`ed (not `import`ed), **top-level `const` /
 `let` are not visible to other scripts**. Anything another mod needs — the
 Three.js scene, renderer, camera, geometry, materials — must be attached to

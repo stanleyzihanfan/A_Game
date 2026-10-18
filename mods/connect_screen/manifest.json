@@ -1,0 +1,13 @@
+{
+    "modID": "connect_screen",
+    "namespace": "connect_screen",
+    "name": "Connection Screen",
+    "version": "0.1.0",
+    "description": "Owns the pre-connect screen: the server-link / player-name / password entry UI shown before the game WebSocket opens. Loaded via 'client_preload_js', which the client asset server injects into the page before the bootstrap scripts run, so the screen appears before any connection is made.",
+    "author": "A_Game",
+    "backend_py": "",
+    "client_js": "",
+    "client_preload_js": "client_preload.js",
+    "dependencies": [],
+    "incompatibilities": []
+}
