@@ -2,8 +2,8 @@
 """
 Game client launcher (wrapper).
 
-Sets UNBOXED_MODS_DIR to this game's mods/ folder, then delegates to the
-vendored Unboxed-Engine client launcher at engine/launch_client.py.
+Sets PROTEAN_MODS_DIR to this game's mods/ folder, then delegates to the
+vendored Protean-Engine client launcher at engine/launch_client.py.
 
 Usage:
     python3 launch_client.py [--tunnel]
@@ -13,7 +13,7 @@ import os, sys
 GAME_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Point the engine at this game's mods directory (the engine ships with none).
-os.environ["UNBOXED_MODS_DIR"] = os.path.join(GAME_ROOT, "mods")
+os.environ["PROTEAN_MODS_DIR"] = os.path.join(GAME_ROOT, "mods")
 
 ENGINE_LAUNCHER = os.path.join(GAME_ROOT, "engine", "launch_client.py")
 

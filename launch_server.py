@@ -2,8 +2,8 @@
 """
 Game server launcher (wrapper).
 
-Sets UNBOXED_MODS_DIR to this game's mods/ folder, then delegates to the
-vendored Unboxed-Engine server launcher at engine/launch_server.py. This keeps
+Sets PROTEAN_MODS_DIR to this game's mods/ folder, then delegates to the
+vendored Protean-Engine server launcher at engine/launch_server.py. This keeps
 the game's mods in its own repo while the engine stays a reusable subtree.
 
 Usage:
@@ -14,7 +14,7 @@ import os, sys
 GAME_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # Point the engine at this game's mods directory (the engine ships with none).
-os.environ["UNBOXED_MODS_DIR"] = os.path.join(GAME_ROOT, "mods")
+os.environ["PROTEAN_MODS_DIR"] = os.path.join(GAME_ROOT, "mods")
 
 ENGINE_LAUNCHER = os.path.join(GAME_ROOT, "engine", "launch_server.py")
 

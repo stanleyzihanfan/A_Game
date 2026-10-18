@@ -1,6 +1,6 @@
-site_name: Unboxed-Engine Modding API Reference
-site_description: Reference for everything a mod can access in Unboxed-Engine — server and client APIs, event hooks, and the wire protocol.
-site_author: Unboxed-Engine
+site_name: Protean-Engine Modding API Reference
+site_description: Reference for everything a mod can access in Protean-Engine — server and client APIs, event hooks, and the wire protocol.
+site_author: Protean-Engine
 docs_dir: docs
 
 theme:

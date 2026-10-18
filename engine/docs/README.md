@@ -1,7 +1,7 @@
-# Unboxed-Engine Modding API Reference
+# Protean-Engine Modding API Reference
 
-This is the reference for everything a mod can access in Unboxed-Engine. A mod
-is a folder under the game's mods directory (set via `UNBOXED_MODS_DIR`, or
+This is the reference for everything a mod can access in Protean-Engine. A mod
+is a folder under the game's mods directory (set via `PROTEAN_MODS_DIR`, or
 `mods/` relative to the engine) that the backend auto-discovers and loads at
 server start. It can contribute server-side logic (Python), client-side logic
 (JavaScript), or both.

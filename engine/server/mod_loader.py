@@ -28,10 +28,10 @@ class ModIncompatibilityError(Exception):
 #
 # MODS_DIR is the hosting game's mods folder. The engine does not assume mods
 # live next to it: a game can point the engine at its own mods folder via the
-# UNBOXED_MODS_DIR environment variable. When unset, it falls back to the
+# PROTEAN_MODS_DIR environment variable. When unset, it falls back to the
 # "mods/" folder next to the engine, so a standalone engine (no game loaded)
 # simply runs with zero mods.
-MODS_DIR = os.environ.get("UNBOXED_MODS_DIR") or os.path.join(
+MODS_DIR = os.environ.get("PROTEAN_MODS_DIR") or os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mods"
 )
 

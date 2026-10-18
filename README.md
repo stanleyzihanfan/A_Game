@@ -1,6 +1,6 @@
 # A-Game
 
-A voxel/block game built on **Unboxed-Engine** — a reusable, moddable
+A voxel/block game built on **Protean-Engine** — a reusable, moddable
 client-server game engine. This repo is the game itself: it vendors the engine
 as an `engine/` subtree and adds the game's own mods in `mods/`.
 
@@ -14,7 +14,7 @@ The engine is split into two separate processes:
   WebSocket endpoint that relays browser console logs to the terminal.
 
 Both are launched from the repository root via `launch_server.py` and
-`launch_client.py`. The root launchers set the `UNBOXED_MODS_DIR` env var to
+`launch_client.py`. The root launchers set the `PROTEAN_MODS_DIR` env var to
 this game's `mods/` folder, then delegate to the engine launchers under
 `engine/`. Mods live in `mods/` and are auto-discovered from their
 `manifest.json` (see `engine/server/mod_loader.py`).
@@ -55,19 +55,19 @@ python3 launch_client.py --tunnel
 ## Layout
 
 ```
-engine/           Vendored Unboxed-Engine (git subtree; reusable, sandbox-free)
+engine/           Vendored Protean-Engine (git subtree; reusable, sandbox-free)
   server/         Backend engine (Flask + WebSocket + tick loop + mod loader)
   client/         Client asset server + browser frontend
   docs/           Modding API reference (built with MkDocs)
   launch_server.py  Engine backend entry point
   launch_client.py  Engine client entry point
 mods/             This game's mods, each a folder with manifest.json + code
-launch_server.py  Game root launcher (sets UNBOXED_MODS_DIR=mods, delegates)
-launch_client.py  Game root launcher (sets UNBOXED_MODS_DIR=mods, delegates)
+launch_server.py  Game root launcher (sets PROTEAN_MODS_DIR=mods, delegates)
+launch_client.py  Game root launcher (sets PROTEAN_MODS_DIR=mods, delegates)
 ```
 
 The `engine/` folder is a subtree of the
-[`Unboxed-Engine`](https://github.com/stanleyzihanfan/Unboxed-Engine) repo. To
+[`Protean-Engine`](https://github.com/stanleyzihanfan/Protean-Engine) repo. To
 update the engine, `git subtree pull` it from that repo; keeping the game's
 mods in `mods/` (outside the engine subtree) means engine updates never touch
 them.
