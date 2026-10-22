@@ -10,3 +10,4 @@ agents.md
 .engine_repo/
 .engine_staging/
 .DS_Store
+.venv
