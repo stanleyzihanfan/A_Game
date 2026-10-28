@@ -2,12 +2,20 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <!-- Mobile web foundation: width=device-width makes the page render at the
+         device's layout width instead of a zoomed-out desktop view; user-scalable=no
+         + maximum-scale=1 disable pinch-zoom so the game canvas isn't rescaled.
+         (Your mobile_input mod can rely on this rather than re-declaring it.) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Voxel Renderer</title>
     <link rel="stylesheet" href="client/styles.css">
 </head>
 <body>
 <div id="crosshair"></div>
 <div id="info">Click to capture mouse<br>WASD: move | Space: up | Shift: down | Mouse: look | Scroll:Change Speed</div>
+<!-- On coarse-pointer (touch) devices the input mod replaces the mouse/WASD
+     controls with a virtual joystick + buttons above #ui-root. It can update
+     this #info text itself via uiRegistry / gameState. -->
 <div id="debug">Speed: 8</div>
 <div id="errorlog"></div>
 
