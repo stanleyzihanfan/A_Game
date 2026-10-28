@@ -25,6 +25,9 @@ window.scene.fog = new THREE.Fog(0x87ceeb, 20, 80);
 
 // -- Renderer ------------------------------------------------------------------
 window.renderer = new THREE.WebGLRenderer({ antialias: true });
+// Scale for the device pixel ratio so text/canvas stay crisp on high-DPI (and
+// mobile) displays instead of rendering at CSS resolution and upscaling.
+window.renderer.setPixelRatio(window.devicePixelRatio || 1);
 window.renderer.setSize(window.innerWidth, window.innerHeight);
 window.renderer.shadowMap.enabled = true;
 document.body.appendChild(window.renderer.domElement);
@@ -65,14 +68,29 @@ window.isGameFocused = function() {
     return false;
 };
 
+// Coarse-pointer (touch) detection: mobile browsers don't implement the Pointer
+// Lock API, so requestPointerLock() is a no-op/rejects. On touch devices, look
+// is handled by the input mod's drag-look zone instead (which writes
+// ["core:playerData","yaw"/"pitch"]), so we don't wire a tap-to-lock click here.
+// window.isCoarsePointer is a plain capability test any mod can read/short-circuit.
+window.isCoarsePointer = function () {
+    return (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)
+        || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+};
+
 let pointerLockAttached = false;
 window.ensurePointerLock = function() {
     if (pointerLockAttached) return;
     if (!window.renderer || !window.renderer.domElement) return;
+    // On touch devices there is no pointer lock to acquire — the input mod owns
+    // look. Still record the flag so main.js's condition stays consistent.
+    pointerLockAttached = true;
+    if (window.isCoarsePointer && window.isCoarsePointer()) {
+        return;
+    }
     window.renderer.domElement.addEventListener("click", () => {
         window.renderer.domElement.requestPointerLock();
     });
-    pointerLockAttached = true;
 };
 
 // -- Resize handler ------------------------------------------------------------

@@ -76,6 +76,22 @@
             }
             .connect-btn:hover { background: #3b7; }
             .connect-error { color: #ff4444; min-height: 16px; }
+            /* Mobile: keep the connect form usable on small/touch screens. The box
+               already uses min(90vw, 420px); these bump tap targets and respect
+               the device safe area so inputs/button aren't hidden by a notch or
+               home indicator. */
+            @media (pointer: coarse) {
+                .connect-box { padding: 18px; gap: 12px; }
+                .connect-box input, .connect-btn { padding: 12px; font-size: 16px; min-height: 44px; }
+            }
+            @supports (padding: env(safe-area-inset-top)) {
+                .connect-box {
+                    padding-left: max(24px, env(safe-area-inset-left));
+                    padding-right: max(24px, env(safe-area-inset-right));
+                    padding-top: max(24px, env(safe-area-inset-top));
+                    padding-bottom: max(24px, env(safe-area-inset-bottom));
+                }
+            }
         `;
         document.head.appendChild(style);
     }

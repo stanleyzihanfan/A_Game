@@ -11,8 +11,33 @@ const SENSITIVITY = 0.002; // radians per pixel
 // so it lives in the scene_setup mod and is exposed on `window` (it streams in
 // AFTER this bootstrap script). We resolve it lazily at runtime.
 
+// -- Input extension point ------------------------------------------------------
+// A client mod can become the SOLE owner of gameplay input by setting
+// window.inputMod to an object exposing `ownsInput()` (return true to take over
+// all gameplay input, e.g. on a touch device). This mirrors the connect-screen
+// provider seam (window.connectScreenProvider): the engine exposes a pluggable
+// point, a mod fills it. When a mod owns input, the built-in keyboard/mouse/wheel
+// handlers below defer to it — that mod becomes the single source of truth for
+// what "input" means on the current device, and can swap in a virtual joystick +
+// buttons while STILL writing the same ["core:keys", code] and
+// ["core:playerData", yaw/pitch] state the other mods read.
+//
+// Initialize window.inputMod = null here so a mod installs into it lazily at
+// runtime (after it streams in), without a preload script. The handlers poll it
+// each event, so there's no ordering dependency on when the mod arrives.
+window.inputMod = null;
+
+function inputModActive() {
+    if (!window.inputMod) return false;
+    if (typeof window.inputMod.ownsInput === "function") return !!window.inputMod.ownsInput();
+    return !!window.inputMod.active;
+}
+
 // -- Input handling: keyboard ---------------------------------------------------
 document.addEventListener("keydown", e => { 
+    // If an input mod owns gameplay input (e.g. touch), let it handle the event
+    // instead of the built-in keyboard path.
+    if (inputModActive()) return;
     // Pass the event through when the scene mod hasn't loaded yet
     // (window.isGameFocused undefined, e.g. login screen) OR the focused
     // element is not the game screen (e.g. a text input).
@@ -24,6 +49,7 @@ document.addEventListener("keydown", e => {
     wsRegistry.dispatch("core:keydown",gameState);
 });
 document.addEventListener("keyup", e => { 
+    if (inputModActive()) return;
     if (!window.isGameFocused || !window.isGameFocused()) {
         return;
     }
@@ -38,6 +64,7 @@ document.addEventListener("keyup", e => {
 // render loop calls it lazily via window.ensurePointerLock (which only runs
 // after the scene mod streams in, so the canvas exists by then).
 document.addEventListener("mousemove", e => {
+    if (inputModActive()) return;
     if (!window.renderer || document.pointerLockElement !== window.renderer.domElement) return;
     let yaw=gameState.get(["core:playerData","yaw"]);
     let pitch=gameState.get(["core:playerData","pitch"]);
@@ -50,6 +77,7 @@ document.addEventListener("mousemove", e => {
 
 // Scroll wheel to control movement speed
 document.addEventListener("wheel", e => {
+    if (inputModActive()) return;
     let speed=gameState.get(["core:playerData","speed"]);
     speed -= e.deltaY * SCROLL_DIALATION;
     speed = Math.max(speed, 0);
