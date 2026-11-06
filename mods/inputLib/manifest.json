@@ -1,0 +1,14 @@
+{
+    "modID": "inputLib",
+    "namespace": "inputLib",
+    "name": "UI Demo",
+    "version": "0.1.0",
+    "description": "Handles input logging to gamestate",
+    "author": "Eyeseminal",
+    "backend_py": "",
+    "client_js": "client.js",
+    "enabled": true,
+    "dependencies": [],
+    "optional_dependencies": [],
+    "incompatibilities": []
+}

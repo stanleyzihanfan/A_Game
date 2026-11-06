@@ -7,5 +7,6 @@
     "author": "Eyeseminal",
     "client_js": "client.js",
     "dependencies": [],
+    "optional_dependencies": [],
     "incompatibilities": []
 }

@@ -9,5 +9,6 @@
     "client_js": "",
     "client_preload_js": "client_preload.js",
     "dependencies": [],
+    "optional_dependencies": [],
     "incompatibilities": []
 }

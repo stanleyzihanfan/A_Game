@@ -9,5 +9,6 @@
     "client_js": "client.js",
     "enabled": false,
     "dependencies": [],
+    "optional_dependencies": [],
     "incompatibilities": []
 }
