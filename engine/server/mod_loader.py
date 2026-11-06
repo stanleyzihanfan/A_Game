@@ -11,6 +11,14 @@ Registry and GameState namespace stacks, so every unqualified op, handler
 name, and game-state key the mod uses is automatically prefixed with it —
 the mod never writes "namespace:something" itself. All "core:something"
 strings pass through untouched (they are hard-coded by design).
+
+Dependencies vs optional_dependencies:
+A mod's "dependencies" are HARD: each must be loaded first and a missing or
+version-mismatched dependency causes the dependent mod to be skipped. A mod's
+"optional_dependencies" are SOFT, for optional compatibility: the mod is fine if
+the dependency is absent, but if it IS present (and satisfies its version spec)
+it is loaded before the mod. An optional dependency never causes the dependent
+mod to be skipped.
 """
 import os, json, importlib.util, re
 
@@ -511,6 +519,12 @@ def _load_order(manifests):
     register(). Mods with no dependencies keep their old alphabetical order, so
     the result stays deterministic and unchanged for existing mods.
 
+    A mod may ALSO declare an "optional_dependencies" list. These are soft
+    dependencies for optional compatibility: the mod is fine if the dependency is
+    absent, but if it IS present (and satisfies the declared version spec), it is
+    loaded before the mod so the mod can rely on it. Unlike a hard dependency, an
+    optional dependency NEVER causes the dependent mod to be skipped.
+
     Failure handling (consistent with the loader's warn-and-skip philosophy; a
     config problem never crashes the whole load):
       - A mod that depends on a modID that will NOT be loaded — because it is
@@ -518,6 +532,10 @@ def _load_order(manifests):
         warning. This cascades: mods that depend on a skipped mod are skipped too.
       - A dependency whose declared version spec is NOT satisfied by the
         dependency's manifest version is skipped with a warning (and cascades).
+      - An optional dependency that is missing is silently ignored — the
+        dependent still loads, just with no ordering guarantee (it must guard at
+        runtime). An optional dependency that is PRESENT but at a version that
+        does NOT satisfy the spec is warned about but the dependent STILL loads.
       - Dependency cycles are detected and broken deterministically at the
         alphabetically-first mod of each cycle, with a warning. Each distinct
         (strongly connected) cycle group is reported separately.
@@ -529,19 +547,24 @@ def _load_order(manifests):
     """
     import heapq
 
-    # Read dependency edges, ignoring bad values. parsed_refs[modID] is the dict
-    # {dep_modID: version_spec_or_None} parsed from the manifest; deps[modID] is
-    # the set of dep modIDs (the keys of parsed_refs[modID]).
-    parsed_refs = {}
+    # Read dependency edges, ignoring bad values. hard_refs[modID] is the dict
+    # {dep_modID: version_spec_or_None} parsed from the manifest's "dependencies";
+    # opt_refs[modID] is the same for "optional_dependencies". hard_deps[modID]
+    # is the set of hard dep modIDs (the keys of hard_refs[modID]).
+    hard_refs = {}
+    opt_refs = {}
     for modID in sorted(manifests.keys()):
-        raw = manifests[modID].get("dependencies") or []
-        parsed_refs[modID] = _parse_dependency_list(raw, modID, "dependencies")
-    deps = {modID: set(parsed.keys()) for modID, parsed in parsed_refs.items()}
+        hard_refs[modID] = _parse_dependency_list(
+            manifests[modID].get("dependencies") or [], modID, "dependencies")
+        opt_refs[modID] = _parse_dependency_list(
+            manifests[modID].get("optional_dependencies") or [], modID, "optional_dependencies")
+    hard_deps = {modID: set(refs.keys()) for modID, refs in hard_refs.items()}
 
     # Drop unsatisfiable mods (missing / disabled / transitively-skipped). A mod
-    # is unsatisfiable if any dependency is not loadable OR does not satisfy the
-    # declared version spec. Resolve to a fixpoint so mods depending on a skipped
-    # mod are also skipped.
+    # is unsatisfiable if any HARD dependency is not loadable OR does not satisfy
+    # the declared version spec. Resolve to a fixpoint so mods depending on a
+    # skipped mod are also skipped. Optional dependencies are deliberately excluded
+    # here: they never make a mod unsatisfiable.
     versions = {
         modID: str(manifests[modID].get("version", "0.0.0") or "0.0.0")
         for modID in manifests
@@ -558,8 +581,8 @@ def _load_order(manifests):
         changed = False
         for modID in sorted(loadable):
             unavailable = []
-            for dep in sorted(deps[modID]):
-                dep_spec = parsed_refs[modID][dep]
+            for dep in sorted(hard_deps[modID]):
+                dep_spec = hard_refs[modID][dep]
                 if dep not in loadable:
                     unavailable.append(dep)
                 elif not _version_matches(dep_spec, versions[dep], schemes[dep]):
@@ -569,14 +592,35 @@ def _load_order(manifests):
                 loadable.discard(modID)
                 changed = True
 
+    # Build the effective ordering edges for the topological sort. A dependency
+    # contributes an edge (it must load before the dependent) only when it is
+    # loadable AND satisfies its version spec. Hard deps satisfy this by the
+    # fixpoint above. An optional dependency contributes an edge only when it is
+    # present AND version-compatible; a missing one is silently treated as absent,
+    # and a present-but-incompatible one is warned about but the dependent still
+    # loads (getting no ordering guarantee, so it must guard at runtime).
+    order_deps = {}
+    for modID in loadable:
+        edges = set(hard_deps[modID])
+        for dep in sorted(opt_refs[modID]):
+            dep_spec = opt_refs[modID][dep]
+            if dep not in loadable:
+                # Absent (missing / disabled / itself skipped): optional, so skip.
+                continue
+            if not _version_matches(dep_spec, versions[dep], schemes[dep]):
+                print(f"\x1b[33m  Mod '{modID}' has optional dependency '{dep}' at version {versions[dep]}, expected {dep_spec}; not relying on it\033[0m")
+                continue
+            edges.add(dep)
+        order_deps[modID] = edges
+
     # Topologically sort the loadable set. Kahn's algorithm with an alphabetical
     # heap for deterministic tie-breaking (matches the old alphabetical order for
     # mods with no dependencies).
     indegree = {modID: 0 for modID in loadable}
     dependents = {modID: [] for modID in loadable}  # modID -> mods that depend on it
     for modID in loadable:
-        for dep in deps[modID]:
-            # By the fixpoint above, every dependency of a loadable mod is loadable.
+        for dep in order_deps[modID]:
+            # By construction, every parent in order_deps is loadable.
             dependents[dep].append(modID)
             indegree[modID] += 1
 
@@ -593,7 +637,7 @@ def _load_order(manifests):
             # cycle exists among `remaining`. Report each distinct cycle group
             # once, then break deterministically at the alphabetically-first
             # remaining mod so the load continues rather than stalling.
-            for group in sorted(_cycle_groups(remaining, deps)):
+            for group in sorted(_cycle_groups(remaining, order_deps)):
                 key = frozenset(group)
                 if key not in reported_cycles:
                     print(f"\x1b[33m  Dependency cycle detected among: {group}; loading in alphabetical order\033[0m")

@@ -8,5 +8,6 @@
     "backend_py": "main.py",
     "client_js": "client.js",
     "dependencies": [],
+    "optional_dependencies": [],
     "incompatibilities": []
 }

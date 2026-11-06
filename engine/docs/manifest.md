@@ -19,6 +19,7 @@ should run. It is read by `server/mod_loader.py`.
     "client_js": "client.js",
     "enabled": true,
     "dependencies": [],
+    "optional_dependencies": [],
     "incompatibilities": []
 }
 ```
@@ -204,6 +205,49 @@ Rules (see `_load_order` in `mod_loader.py`):
   warning.
 - Mods with **no dependencies** continue to load in alphabetical order, so
   existing mods keep their previous behavior.
+
+### `optional_dependencies` — optional, defaults to `[]`
+A list of **soft** dependencies, for optional compatibility with other mods. The
+mod is fine if the dependency is **absent**; but **if it is present** (and
+satisfies the declared version spec), it is loaded **before** this mod so the
+mod can rely on the handlers/state the dependency registered — e.g. detecting
+another mod is installed and enabling extra compatibility behavior.
+
+Each entry uses the **same string-or-dict form** as [`dependencies`](#dependencies-optional-defaults-to),
+including an optional version spec:
+
+```json
+{
+    "modID": "my_mod",
+    "optional_dependencies": [
+        "player_position",                  // any version, if present
+        "relativeDisplayLib>=0.2.0",        // only if present AND >=0.2.0
+        {"modID": "ui_demo", "version": ">=0.1.0,<1.0"}   // dict form
+    ]
+}
+```
+
+The identifier is a **`modID`**, not a namespace. The optional **version spec**
+matches the same operators as `dependencies` and is evaluated under the
+dependency's `version_scheme`.
+
+The key difference from `dependencies` — an optional dependency **never causes
+the dependent mod to be skipped**:
+
+- A specified optional dependency that is **absent** (missing, `enabled: false`,
+  or itself skipped) is silently ignored, and this mod still loads. Since there
+  is no ordering guarantee, the mod's `register()` must guard at runtime (e.g.
+  check whether the dependency actually registered its handlers before using them).
+- A specified optional dependency that is **present but at a version that does
+  not satisfy the spec** is reported with a warning, and this mod still loads
+  (again, with no ordering guarantee, so the mod must guard at runtime).
+- If the optional dependency **is present and satisfies the spec**, it is added
+  to the load order as an edge, guaranteeing it loads **before** this mod — this
+  is the full "optional compatibility" behavior.
+
+In short: `dependencies` selects mods (it is required), while
+`optional_dependencies` only **orders** mods relative to the dependent **when the
+dependency is already going to be there**. Both can be declared together.
 
 ### `incompatibilities` — optional, defaults to `[]`
 A list of mods this mod **cannot work alongside**. If a loaded mod matches an
