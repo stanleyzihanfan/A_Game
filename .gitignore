@@ -8,3 +8,4 @@ site/
 agents.md
 .DS_Store
 .venv
+.vscode/

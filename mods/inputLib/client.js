@@ -6,6 +6,7 @@
 // owner (e.g. a future touch input mod that reclaims window.inputMod), and only
 // defer to a foreign owner.
 const SELF_ID = "inputLib";
+const IS_TOUCH = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 
 // The engine's fallback in main.js checks `window.inputMod` and defers whenever
 // ANY mod owns input. We claim ownership here so the engine's fallback stands

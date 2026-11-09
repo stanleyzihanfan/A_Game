@@ -1,7 +1,7 @@
 {
     "modID": "inputLib",
     "namespace": "inputLib",
-    "name": "UI Demo",
+    "name": "Input Library",
     "version": "0.1.0",
     "description": "Handles input logging to gamestate",
     "author": "Eyeseminal",
