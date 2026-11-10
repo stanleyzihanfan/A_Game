@@ -1,0 +1,102 @@
+/* The root: a transparent layer covering the whole screen. */
+.touch-ui {
+    position: fixed; /* stay put, relative to the screen */
+    inset: 0; /* shorthand for top/right/bottom/left = 0 */
+    touch-action: none; /* stop the browser from scrolling/zooming on touch */
+    user-select: none; /* no text selection when dragging */
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent; /* no grey flash on tap (iOS/Android) */
+}
+
+/* IMPORTANT: the engine's CSS makes every direct child of #ui-root clickable,
+       which would make our full-screen layer block the whole game. This selector
+       is more specific, so it wins and makes the layer "see-through" to clicks. */
+#ui-root > .touch-ui {
+    pointer-events: none;
+}
+
+/* ...then we turn clicks back ON only for the actual controls. */
+.touch-ui > * {
+    pointer-events: auto;
+}
+
+/* Look zone: the right half of the screen. Dragging here will turn the camera.
+       The faint tint is a debugging aid. Set the background to transparent later. */
+.touch-look {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Joystick base: a circle in the bottom-left corner. */
+.touch-joy {
+    position: absolute;
+    left: calc(24px + env(safe-area-inset-left, 0px));
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    width: 150px;
+    height: 150px;
+    border-radius: 50%; /* 50% rounding turns a square into a circle */
+    background: rgba(255, 255, 255, 0.12);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+/* Joystick knob: the small circle that will move. */
+.touch-joy-knob {
+    position: absolute;
+    left: 50%;
+    top: 50%; /* start at the center of the base... */
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    pointer-events: none; /* touches go to the base, not the knob */
+    /* ...then shift back by half its own size so it is truly centered.
+           --dx and --dy are CSS variables our JS will set later to move it. */
+    transform: translate(
+        calc(-50% + var(--dx, 0px)),
+        calc(-50% + var(--dy, 0px))
+    );
+}
+
+/* Button cluster: bottom-right corner, stacked vertically. */
+.touch-buttons {
+    position: absolute;
+    right: calc(24px + env(safe-area-inset-right, 0px));
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    display: flex; /* flexbox: lay children out in a line... */
+    flex-direction: column; /* ...going downward */
+    align-items: flex-end; /* align to the right edge */
+    gap: 14px; /* spacing between children */
+}
+.touch-row {
+    display: flex;
+    gap: 14px;
+} /* a horizontal row of buttons */
+
+.touch-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    font: bold 24px monospace;
+    display: flex; /* these 3 lines center the label in the circle */
+    align-items: center;
+    justify-content: center;
+}
+.touch-btn.small {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+}
+
+/* Pressed look. ":active" works for simple taps; ".is-pressed" is a class
+       our JS can add/remove later, which is more reliable with multi-touch. */
+.touch-btn:active,
+.touch-btn.is-pressed {
+    background: rgba(42, 170, 102, 0.7);
+}
