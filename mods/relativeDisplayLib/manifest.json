@@ -1,7 +1,7 @@
 {
     "modID": "relativeDisplayLib",
     "namespace": "relDisLib",
-    "name": "Relative Dsiplay Library",
+    "name": "Relative Display Library",
     "version": "0.1.0-alpha",
     "description": "Library mod for relative display calculations",
     "author": "Eyeseminal",

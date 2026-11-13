@@ -32,15 +32,21 @@ function otherInputOwner() {
 const SCROLL_DIALATION = 0.005;
 const SENSITIVITY = 0.002; // radians per pixel
 
+// Touch-only resources. Declared at module scope (not inside the touch branch)
+// because the core:on_disconnect handlers below run long after this script has
+// finished evaluating and must still be able to see/tear them down.
+let touchView = null;
+let touchLink = null;
+
 // ----------------------Helpers----------------------
 
 /**
  * Fetch text file from server
- * @param {string} params - file path
+ * @param {string} path - file path
  * @returns contents of text file
  */
-async function loadText(params) {
-    const res = await fetch(params, { cache: "no-store" });
+async function loadText(path) {
+    const res = await fetch(path, { cache: "no-store" });
     if (!res.ok) throw new Error(`Could not load ${path} (HTTP ${res.status})`);
     return res.text();
 }
@@ -130,24 +136,32 @@ if (!IS_TOUCH) {
     });
 } else {
     // Touch Handlers
-    let touchView = null,
-        touchLink = null,
-        touchHTML = "";
-    //Load CSS using link tag
-    touchLink = document.createElement("link");
-    touchLink.rel = "stylesheet";
-    touchLink.href = "/inputLib/touch.css";
-    document.head.appendChild(touchLink);
+    // Wrapped in an async IIFE: the engine eval()s mod scripts as CLASSIC
+    // scripts, where a top-level `await` is a SyntaxError that would abort this
+    // whole file (taking the keyboard/mouse handlers with it). The IIFE keeps
+    // the await inside an async function.
+    //
+    // The namespace is active only during this eval, so everything that needs
+    // the mod's namespace (createView) stays captured here; the disconnect
+    // handlers below are registered outside and use the bound handles.
+    (async () => {
+        let touchHTML = "";
+        //Load CSS using link tag
+        touchLink = document.createElement("link");
+        touchLink.rel = "stylesheet";
+        touchLink.href = "/inputLib/touch.css";
+        document.head.appendChild(touchLink);
 
-    //Register html while namespace is active & mount once html is received
-    touchView = uiRegistry.createView("touch_ui", () => touchHTML);
-    try {
-        touchHTML = await loadText("/inputLib/touch.html");
-        touchView.mount();
-        console.log("[inputLib] touch UI mounted.");
-    } catch (err) {
-        console.error("[inputLib] touch UI failed to load:", err);
-    }
+        //Register html while namespace is active & mount once html is received
+        touchView = uiRegistry.createView("touch_ui", () => touchHTML);
+        try {
+            touchHTML = await loadText("/inputLib/touch.html");
+            touchView.mount();
+            console.log("[inputLib] touch UI mounted.");
+        } catch (err) {
+            console.error("[inputLib] touch UI failed to load:", err);
+        }
+    })();
 }
 
 wsRegistry.register_handler(
