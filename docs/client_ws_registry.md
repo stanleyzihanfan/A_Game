@@ -93,9 +93,11 @@ The client `Registry` is seeded with these hooks in its constructor
 - `"core:keydown"`
 - `"core:keyup"`
 
-Core dispatches these from `main.js` (keydown/keyup) and the render loop
-(`core:tick`, `core:update_camera`). The server dispatches the same `core:tick`
-hook for per-tick work, so both sides use the same hook name.
+`core:keydown` / `core:keyup` are dispatched by whichever input path is active —
+the input mod that owns `window.inputMod` (e.g. `inputLib`), or the engine
+fallback in `main.js` when no mod owns input. The render loop in `main.js`
+dispatches `core:tick` and `core:update_camera`. The server dispatches the same
+`core:tick` hook for per-tick work, so both sides use the same hook name.
 
 ## Example
 

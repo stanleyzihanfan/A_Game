@@ -1,15 +1,13 @@
 // -- First-person camera controls ---------------------------------------------
 // Initializes the player's look/rotation state and the movement speed.
+//
+// These seeds are ENGINE defaults, not input tuning: they are read by
+// player_position/client.js every tick (yaw/pitch -> camera, speed -> the
+// movement message) and must exist even when no input mod is installed. The
+// input-side tuning constants live in the owning input mod (inputLib), NOT here.
 gameState.set(["core:playerData", "yaw"], 0, true);
 gameState.set(["core:playerData", "pitch"], 0, true);
 gameState.set(["core:playerData", "speed"], 8, true); // base speed (units/sec)
-const SCROLL_DIALATION = 0.005;
-const SENSITIVITY = 0.002; // radians per pixel
-
-// Elements considered "the game screen" — keydown/keyup are only processed for
-// gameplay when one of these is focused. isGameFocused() is renderer-specific,
-// so it lives in the scene_setup mod and is exposed on `window` (it streams in
-// AFTER this bootstrap script). We resolve it lazily at runtime.
 
 // -- Input extension point ------------------------------------------------------
 // A client mod can become the SOLE owner of gameplay input by setting
@@ -40,6 +38,15 @@ function inputModActive() {
 // (window.inputMod -> ownsInput() true), these handlers defer to it via
 // inputModActive() and the mod becomes the single source of truth. This keeps
 // keyboard input working even when the inputLib mod is absent/disabled.
+//
+// This fallback is deliberately SELF-CONTAINED: it keeps its own tuning
+// constants rather than reaching into the input mod. The values intentionally
+// match inputLib's defaults so swapping between the two feels identical, but
+// they are duplicated on purpose — the fallback must still work (and stay
+// tunable in isolation) with no input mod installed at all. Tune gameplay feel
+// in your input mod; these only govern the no-mod case.
+const FALLBACK_SENSITIVITY = 0.002;  // radians per pixel
+const FALLBACK_SCROLL_DIALATION = 0.005;
 
 // -- Keyboard (fallback) ---------------------------------------------------------
 document.addEventListener("keydown", (e) => {
@@ -79,8 +86,8 @@ document.addEventListener("mousemove", (e) => {
         return;
     let yaw = gameState.get(["core:playerData", "yaw"]);
     let pitch = gameState.get(["core:playerData", "pitch"]);
-    yaw -= e.movementX * SENSITIVITY;
-    pitch -= e.movementY * SENSITIVITY;
+    yaw -= e.movementX * FALLBACK_SENSITIVITY;
+    pitch -= e.movementY * FALLBACK_SENSITIVITY;
     pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
     gameState.set(["core:playerData", "yaw"], yaw);
     gameState.set(["core:playerData", "pitch"], pitch);
@@ -90,7 +97,7 @@ document.addEventListener("mousemove", (e) => {
 document.addEventListener("wheel", (e) => {
     if (inputModActive()) return;
     let speed = gameState.get(["core:playerData", "speed"]);
-    speed -= e.deltaY * SCROLL_DIALATION;
+    speed -= e.deltaY * FALLBACK_SCROLL_DIALATION;
     speed = Math.max(speed, 0);
     gameState.set(["core:playerData", "speed"], speed);
     document.getElementById("debug").textContent = "Speed: " + speed;
