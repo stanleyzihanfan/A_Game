@@ -55,6 +55,10 @@ canvas {
     font: 14px monospace;
     text-shadow: 1px 1px 2px black;
 }
+/* Sits ABOVE the renderer canvas (which scene_setup appends to <body> with
+   position:fixed;inset:0 and no z-index) and above #ui-root (100), so a mod
+   load error stays readable instead of being painted over the moment the
+   scene appears. Kept non-interactive so it never eats clicks/clicks-to-lock. */
 #errorlog{
     position:fixed;bottom:10px;
     left:10px;color:#ff4444;
@@ -63,6 +67,14 @@ canvas {
     max-width:80vw;max-height:40vh;
     overflow-y:auto;
     white-space:pre-wrap;
+    z-index:2000;
+    pointer-events:none;
+    /* Usable over a bright scene: a dark backing plus a border keeps the red
+       text legible against the sky/voxels. */
+    background:rgba(0,0,0,0.55);
+    padding:4px 6px;
+    border-radius:4px;
+    border-left:2px solid #ff4444;
 }
 
 /* -- UI mount point (client mods attach views here via uiRegistry) -------------

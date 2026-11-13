@@ -137,6 +137,12 @@ function onSocketMessage(e) {
             }
             console.log(`  ${modID} loaded OK`);
         } catch(err) {
+            // Report on ALL channels, not just the on-screen #errorlog. The
+            // screen div is transient (the renderer canvas covers it, and a
+            // reload wipes it), so console.error is the durable record: the
+            // console override above forwards it to the client log WebSocket,
+            // which prints it in the terminal running the client asset server.
+            console.error(`MOD LOAD ERROR (${modID}): ${err && err.message ? err.message : err}`, err && err.stack || err);
             const div = document.getElementById("errorlog");
             if (div) div.innerText += `MOD LOAD ERROR (${modID}): ${err}\n`;
         }
