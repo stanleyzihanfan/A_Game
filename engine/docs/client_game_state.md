@@ -66,8 +66,9 @@ Convenience wrapper for reading key state.
 const moving = gameState.isKeyDown("KeyW");
 ```
 
-Returns `gameState.get(["core:keys", code], false)`. The key/up handlers in
-`main.js` write `["core:keys", e.code]`.
+Returns `gameState.get(["core:keys", code], false)`. The key/up handlers write
+`["core:keys", e.code]`: the active input mod (e.g. `inputLib`) when it owns
+input via `window.inputMod`, otherwise the engine fallback in `main.js`.
 
 ## Send / receive buffer helpers
 

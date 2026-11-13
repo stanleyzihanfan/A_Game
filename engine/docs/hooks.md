@@ -52,7 +52,8 @@ cleared after the hook returns.
 ## Client hooks
 
 These are dispatched in `client/scripts/main.js` and
-`client/scripts/initialization.js`. Each handler is called as
+`client/scripts/initialization.js`, or by the active input mod for the
+input hooks (see `core:keydown` / `core:keyup` below). Each handler is called as
 `func(gameState, wsRegistry)`.
 
 | Hook | When it fires | Purpose / notes |
@@ -61,8 +62,8 @@ These are dispatched in `client/scripts/main.js` and
 | `core:tick` | Every client tick (fixed `1/20`). | Per-tick client logic: collect input, read server messages, update the scene. Dispatched only after `["core:initialized"]` is true. |
 | `core:init` | Once, on the first `core:sync_with_client` message after `mods_ready`. | Apply the one-time init payload from the server (e.g. detect initial player position/look). |
 | `core:update_camera` | Every render frame (`requestAnimationFrame`), in the render loop. | Apply camera transform. Dispatched by `main.js` right before `renderer.render(...)`. |
-| `core:keydown` | On a key press, when the game screen is focused. | Handle gameplay key-down. `gameState` already has `["core:keys", e.code]` set. |
-| `core:keyup` | On a key release, when the game screen is focused. | Handle gameplay key-up. |
+| `core:keydown` | On a key press, when the game screen is focused. | Handle gameplay key-down. `gameState` already has `["core:keys", e.code]` set. Dispatched by the input mod owning `window.inputMod` (e.g. `inputLib`), or by the `main.js` fallback when no mod owns input. |
+| `core:keyup` | On a key release, when the game screen is focused. | Handle gameplay key-up. Same dispatch ownership as `core:keydown`. |
 | `core:on_disconnect` | When the game socket closes. | Client-side cleanup (mirrors the server `core:on_player_disconnect`). The engine sets `["core:disconnect"]` with `{code, reason, wasClean}` first. If the socket never fully opened, no handlers may be registered yet — `dispatch()` is then a no-op. |
 
 ### Client hook argument details
