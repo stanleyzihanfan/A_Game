@@ -87,6 +87,9 @@
     display: flex; /* these 3 lines center the label in the circle */
     align-items: center;
     justify-content: center;
+    /* A finger that slides slightly must not start the browser's panning /
+       pull-to-refresh gesture instead of staying with the button. */
+    touch-action: none;
 }
 .touch-btn.small {
     width: 48px;
@@ -94,8 +97,12 @@
     font-size: 20px;
 }
 
-/* Pressed look. ":active" works for simple taps; ".is-pressed" is a class
-       our JS can add/remove later, which is more reliable with multi-touch. */
+/* Pressed look. ":active" works for simple taps on desktop; ".is-pressed" is
+       added/removed by client.js (pointerdown/pointerup), which is what makes the
+       feedback reliable on mobile — mobile browsers do not keep :active applied
+       while a finger rests on an element. The stronger rules that actually repaint
+       the button live in client.js (register_style), so they outrank the base
+       .touch-btn background declared above. */
 .touch-btn:active,
 .touch-btn.is-pressed {
     background: rgba(42, 170, 102, 0.7);

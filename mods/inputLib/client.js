@@ -37,6 +37,14 @@ const SENSITIVITY = 0.002; // radians per pixel
 // finished evaluating and must still be able to see/tear them down.
 let touchView = null;
 let touchLink = null;
+let touchStyleId = null;
+// Set once mountTouch() succeeds, so the resize handler knows whether it has
+// (or had) an overlay to restore. Pointers are tracked ourselves rather than
+// relying on the CSS :active pseudo-class, which mobile browsers do not keep
+// applied while a finger rests on an element. (Buttons are not wired to game
+// state yet — this only drives the pressed look.)
+const touchPointers = new Map();
+let touchMounted = false;
 
 // ----------------------Helpers----------------------
 
@@ -135,43 +143,151 @@ if (!IS_TOUCH) {
         changeSpeed(e.deltaY, SCROLL_DIALATION);
     });
 } else {
-    // Touch Handlers
+    // -- Touch Handlers --------------------------------------------------------------
     // Wrapped in an async IIFE: the engine eval()s mod scripts as CLASSIC
     // scripts, where a top-level `await` is a SyntaxError that would abort this
     // whole file (taking the keyboard/mouse handlers with it). The IIFE keeps
     // the await inside an async function.
     //
     // The namespace is active only during this eval, so everything that needs
-    // the mod's namespace (createView) stays captured here; the disconnect
-    // handlers below are registered outside and use the bound handles.
+    // the mod's namespace (createView / register_style) is done BEFORE the
+    // first await. Mounting happens after it, via the bound handle (which
+    // re-enters the namespace itself), so runtime mounts work too.
+
+    // Touch HTML lives in touch.html; the builder caches the fetched markup so
+    // a remount (see the resize handler) never refetches or reparses it.
+    let touchHTML = null;
+
+    // Idempotent teardown. Safe to call more than once: a disconnect can fire
+    // without a prior mount, and the resize handler remounts independently.
+    // NOTE: touchView is intentionally NOT cleared here — mountTouch() needs the
+    // bound handle to remount, and the handle is safe to reuse after unmount().
+    function teardownTouch() {
+        touchPointers.clear();
+        if (touchView) touchView.unmount(); // removes the DOM nodes we appended
+        touchMounted = false;
+        if (touchLink) touchLink.remove();
+        touchLink = null;
+        if (touchStyleId) document.getElementById(touchStyleId)?.remove();
+        touchStyleId = null;
+    }
+
+    // Mount the overlay into #ui-root. Idempotent: a no-op while already
+    // mounted, so repeated resize/orientation events never stack copies.
+    function mountTouch() {
+        if (touchMounted) return;
+        if (!touchHTML) {
+            console.warn("[inputLib] touch UI not mounted yet: markup not loaded.");
+            return;
+        }
+        if (!touchView) {
+            console.error("[inputLib] touch UI handle missing; cannot mount.");
+            return;
+        }
+        const el = touchView.mount();
+        if (!el) {
+            console.error("[inputLib] touch UI could not mount (no #ui-root).");
+            return;
+        }
+        touchMounted = true;
+        console.log("[inputLib] touch UI mounted.");
+    }
+
     (async () => {
-        let touchHTML = "";
         //Load CSS using link tag
         touchLink = document.createElement("link");
         touchLink.rel = "stylesheet";
         touchLink.href = "/inputLib/touch.css";
         document.head.appendChild(touchLink);
 
+        // Pressed-state rules. Generated so the selector outranks the base
+        // `.touch-btn { background: ... }` rule in touch.css (#ui-root prefix)
+        // and so the pressed look survives the browser dropping :active while
+        // a finger is still down, as mobile browsers do.
+        touchStyleId = uiRegistry.register_style(
+            `
+#ui-root .touch-btn.is-pressed,
+#ui-root .touch-btn:active {
+    background: rgba(42, 170, 102, 0.7);
+    border-color: rgba(150, 255, 190, 0.9);
+    transform: scale(0.94);
+}
+/* The look zone sits above the buttons in DOM order; keep the buttons tappable. */
+.touch-look { z-index: 0; }
+.touch-buttons, .touch-joy { z-index: 1; }
+`,
+            "ui-style-inputLib-touch-press",
+        );
+
         //Register html while namespace is active & mount once html is received
         touchView = uiRegistry.createView("touch_ui", () => touchHTML);
         try {
             touchHTML = await loadText("/inputLib/touch.html");
-            touchView.mount();
-            console.log("[inputLib] touch UI mounted.");
+            mountTouch();
         } catch (err) {
             console.error("[inputLib] touch UI failed to load:", err);
         }
     })();
-}
 
-wsRegistry.register_handler(
-    "core:on_disconnect",
-    () => {
-        if (touchView) touchView.unmount();
-        if (touchLink) touchLink.remove();
-    },
-    "touch_cleanup",
-);
+    // Touch buttons. NOTE: these are INTENTIONALLY not wired to game state —
+    // mapping data-key / data-action to ["core:keys", code] is not implemented
+    // yet. What is wired here is the PRESSED LOOK (.is-pressed), so a tap gives
+    // visible feedback on a real phone. Nothing is read from gameState.
+    //
+    // Listening on document (one listener per event, not per button) means a
+    // finger that slides off a control still gets released.
+    document.addEventListener("pointerdown", (e) => {
+        if (otherInputOwner()) return;
+        const btn = e.target.closest?.(".touch-btn");
+        if (!btn) return;
+        touchPointers.set(e.pointerId, btn);
+        btn.classList.add("is-pressed");
+        // Keep receiving this finger's events even if it leaves the button.
+        try {
+            btn.setPointerCapture(e.pointerId);
+        } catch (_) {
+            /* capture is best-effort */
+        }
+        e.preventDefault();
+    });
+
+    function releaseTouchPointer(e) {
+        const btn = touchPointers.get(e.pointerId);
+        if (!btn) return;
+        touchPointers.delete(e.pointerId);
+        btn.classList.remove("is-pressed");
+    }
+    // pointerup fires on the element even without capture; pointercancel covers
+    // the OS stealing the touch (gesture, incoming call, app switch), and
+    // lostpointercapture is the backstop.
+    document.addEventListener("pointerup", releaseTouchPointer);
+    document.addEventListener("pointercancel", releaseTouchPointer);
+    document.addEventListener("lostpointercapture", releaseTouchPointer);
+
+    // -- Remount after layout changes ------------------------------------------------
+    // Rotation (and any viewport resize) can tear the overlay down: a transient
+    // socket close fires core:on_disconnect, and uiRegistry has no client-side
+    // lifecycle hook to bring it back. Remount here so the controls return the
+    // next time a resize/resolution settles, instead of needing a page reload.
+    let resizeTimer = null;
+    function onViewportChange() {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            resizeTimer = null;
+            mountTouch();
+        }, 150);
+    }
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("orientationchange", onViewportChange);
+
+    // Touch-only cleanup: on desktop this mod has no overlay, so it must not
+    // touch touchView/touchLink there.
+    wsRegistry.register_handler(
+        "core:on_disconnect",
+        () => teardownTouch(),
+        "touch_cleanup",
+    );
+}
 
 console.log(
     "[inputLib] full input handlers registered (keyboard + mouse + wheel).",
