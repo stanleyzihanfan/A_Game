@@ -32,6 +32,11 @@ class UIRegistry {
         this._instances = {};
         // Fully-qualified event -> { handlerName: { func, namespace } }
         this._handlers = {};
+        // Fully-qualified listener name -> { target, event, fn, capture, namespace }
+        // DOM listeners registered via register_listener(). Kept so they can be
+        // removed later (removeEventListener needs the same fn + capture, which
+        // is why the registry stores both rather than a bare callback).
+        this._listeners = {};
         // List of injected <style> ids, for cleanup
         this._styles = [];
         this._uid = 0;
@@ -212,11 +217,19 @@ class UIRegistry {
     /**
      * Tear down every view this registry has mounted. No lifecycle hook exists
      * on the client, so this is how mods/core can clean up after themselves.
+     *
+     * Also removes every DOM listener registered through register_listener():
+     * a listener usually drives a view, so leaving it attached after the view
+     * is gone means dead handlers firing against detached elements — and, after
+     * a reconnect, duplicated listeners on the same target. Styles are left
+     * alone (clearStyles() owns those) because they are harmless when unused
+     * and removing them mid-session causes visible restyling.
      */
     unmountAll() {
         for (const key of Object.keys(this._instances)) {
             this.unmount(key);
         }
+        this.clearListeners();
     }
 
     /**
@@ -292,6 +305,29 @@ class UIRegistry {
     }
 
     /**
+     * Remove a UI event handler registered with on().
+     *
+     * Mirror of on(): same (event, name) pair. Returns boolean rather than
+     * throwing, so "you targeted the wrong name" is visible to the caller —
+     * a silent no-op would hide exactly the bug name-based targeting makes
+     * likely.
+     *
+     * @param {string} event - Event hook name
+     * @param {string} name - Handler name to remove (as resolved at on() time)
+     * @returns {boolean} True if a handler was removed.
+     */
+    unregister_handler(event, name) {
+        const ev = this._resolve(event);
+        if (name === null || name === undefined) return false;
+        const handlerName = this._resolve(name);
+        const handlers = this._handlers[ev];
+        if (!handlers || !Object.hasOwn(handlers, handlerName)) return false;
+        delete handlers[handlerName];
+        console.log(`    UI handler ${handlerName} removed from ${ev}.`);
+        return true;
+    }
+
+    /**
      * Look up a UI event handler or whole event hook.
      * @param {string} event
      * @param {string} [name]
@@ -319,6 +355,10 @@ class UIRegistry {
         const ev = this._resolve(event);
         const handlers = this._handlers[ev];
         if (!handlers) return;
+        // NOTE: Object.entries() snapshots the handler names up front, so a
+        // handler that calls unregister_handler() during this loop cannot
+        // corrupt the iteration. Keep the snapshot; do not replace it with a
+        // live Object.keys() lookup per step.
         for (const [handlerName, record] of Object.entries(handlers)) {
             const namespace = record.namespace;
             if (namespace !== null) {
@@ -343,6 +383,111 @@ class UIRegistry {
                 }
             }
         }
+    }
+
+    // -- DOM listeners ----------------------------------------------------------
+    // A registry-owned replacement for raw target.addEventListener(). The point
+    // is not convenience — it is ownership. A listener handed straight to
+    // addEventListener() is unreachable afterwards: removing it requires the
+    // SAME function reference and capture flag, so a closure created inline
+    // (`target.addEventListener("x", (e) => {...})`) can never be uninstalled,
+    // not even by the mod that created it. Registering it here makes it a named,
+    // addressable record, so another mod can overwrite or remove it by name.
+    /**
+     * Attach a DOM listener and remember it under a name.
+     *
+     * Registering a name that already exists REPLACES the previous listener:
+     * the old one is removed from its target first, then the new one is
+     * attached. This mirrors register_handler()'s overwrite semantics, and it
+     * matters — simply dropping the record without calling removeEventListener
+     * would leave a live listener with no handle (unremovable forever, still
+     * firing).
+     *
+     * `name` is REQUIRED. Handlers may be auto-named (`_ui_N`), but an
+     * auto-named listener could never be unregistered, which defeats the only
+     * reason to route listeners through the registry — so this throws instead.
+     *
+     * @param {EventTarget} target - e.g. window, document, or an element
+     * @param {string} event - DOM event type ("pointerdown", "keyup", ...)
+     * @param {Function} fn - Listener callback
+     * @param {string} name - Unique name for this listener (auto-namespaced)
+     * @param {object} [opts] - Optional { capture } (default false). Stored so
+     * removeEventListener can pass a matching flag.
+     * @returns {string} The fully-qualified listener name
+     */
+    register_listener(target, event, fn, name, opts = {}) {
+        if (!target || typeof target.addEventListener !== "function") {
+            throw new Error("register_listener: target is not an EventTarget");
+        }
+        if (typeof fn !== "function") {
+            throw new Error("register_listener: fn must be a function");
+        }
+        if (name === null || name === undefined || name === "") {
+            throw new Error(
+                "register_listener: a name is required — an auto-named listener could never be unregistered",
+            );
+        }
+        const resolved = this._resolve(name);
+        const namespace = this.currentNamespace();
+        const capture = !!(opts && opts.capture);
+        // Replace: tear the previous listener off its target before dropping it.
+        const old = this._listeners[resolved];
+        if (old) {
+            console.warn(`  Listener ${resolved} already registered, overwriting!`);
+            old.target.removeEventListener(old.event, old.fn, old.capture);
+        }
+        target.addEventListener(event, fn, capture);
+        this._listeners[resolved] = { target, event, fn, capture, namespace };
+        console.log(`    Listener ${resolved} registered for '${event}'.`);
+        return resolved;
+    }
+
+    /**
+     * Remove a DOM listener registered with register_listener().
+     *
+     * @param {string} name - Listener name (auto-namespaced)
+     * @returns {boolean} True if a listener was attached and has been removed.
+     */
+    unregister_listener(name) {
+        if (name === null || name === undefined) return false;
+        const resolved = this._resolve(name);
+        const rec = this._listeners[resolved];
+        if (!rec) return false;
+        rec.target.removeEventListener(rec.event, rec.fn, rec.capture);
+        delete this._listeners[resolved];
+        console.log(`    Listener ${resolved} removed.`);
+        return true;
+    }
+
+    /**
+     * Look up a registered listener record.
+     * @param {string} name - Listener name (auto-namespaced)
+     * @returns {object|null} { target, event, fn, capture, namespace } or null.
+     */
+    get_listener(name) {
+        const resolved = this._resolve(name);
+        return this._listeners[resolved] || null;
+    }
+
+    /**
+     * List every registered listener name.
+     * @returns {string[]}
+     */
+    list_listeners() {
+        return Object.keys(this._listeners);
+    }
+
+    /**
+     * Remove every registered DOM listener. Use on teardown/reconnect: without
+     * this, a mod that re-registers on each connect would stack duplicate
+     * listeners onto the same target.
+     */
+    clearListeners() {
+        for (const name of Object.keys(this._listeners)) {
+            const rec = this._listeners[name];
+            rec.target.removeEventListener(rec.event, rec.fn, rec.capture);
+        }
+        this._listeners = {};
     }
 
     // -- Styles -----------------------------------------------------------------

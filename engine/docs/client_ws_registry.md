@@ -68,6 +68,44 @@ const hook = wsRegistry.get_handler("core:tick");                          // {n
 - With `name`: returns `{func, namespace}` or `null`.
 - Without `name`: returns the hook object or `null`.
 
+## `unregister_handler`
+
+```javascript
+unregister_handler(op, name)   // -> true if removed, false if not found
+```
+
+Remove a handler. The mirror of [`register_handler`](#register_handler): same
+`(op, name)` pair, one installs, one removes.
+
+`register_handler` can only **replace** a handler — removing one is a different
+operation, and this is how an addon mod turns off a handler owned by another mod
+without having to supply a substitute with a compatible signature.
+
+Because a handler's fully-qualified name is stable and discoverable
+(`get_handler(op)` returns the whole hook, so you can read the registered
+names), an addon names its target directly instead of relying on namespace
+filtering:
+
+```javascript
+// Disable another mod's handler by its registered name.
+wsRegistry.unregister_handler("core:tick", "player_position:movement_handler");
+```
+
+- Returns `boolean`, not `undefined`. The realistic failure is targeting the
+  wrong name, and a silent no-op would hide exactly that — check the result.
+- `op` and `name` resolve through the active namespace exactly as
+  `register_handler` resolves them, so pass them in the same form you registered
+  them under (`"core:..."` and explicit `"mod:name"` strings pass through).
+- Safe to call from inside a dispatched handler (including on itself or on a
+  sibling): `dispatch` iterates a snapshot, so removals take effect on the next
+  dispatch rather than corrupting the current one.
+
+> **Handler names are public API.** Once an addon targets `"mod:name"`, renaming
+> that handler breaks the addon silently unless the mod's owners bump its major
+> version. Addons should pin their dependency to protect themselves:
+> `"dependencies": ["player_position@^0.1.0"]` — an unsatisfied spec causes the
+> addon to be **skipped with a warning** rather than loading broken.
+
 ## `currentNamespace()`
 
 Return the active namespace or `null`.

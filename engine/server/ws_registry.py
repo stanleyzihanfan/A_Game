@@ -101,6 +101,46 @@ class Registry:
         self._handlers[op][handlerName]={"func":func,"namespace":handlerNamespace}
         print(f"    New handler {handlerName} registered under {op}.")
 
+    def unregister_handler(self, op: str, name: str = None) -> bool:
+        """
+        Remove a handler registered under an op.
+
+        The mirror of register_handler(): same (op, name) pair, one removes what
+        the other installs. This is how an addon mod disables a handler owned by
+        another mod — register_handler() can only REPLACE one, and replacing is
+        not the same as removing (you would have to supply a substitute with a
+        compatible signature).
+
+        Names are the contract. Because a handler's fully-qualified name is
+        stable and visible (get_handler(op) returns the whole op's dict, so the
+        registered names can be read at runtime), an addon does not need
+        namespace filtering to find its target: it names it directly, e.g.
+        unregister_handler("core:tick", "player_position:movement_handler").
+
+        The op and name are resolved through the active namespace exactly as
+        register_handler() resolves them, so pass them in the same form you
+        registered them under ("core:tick" passes through untouched).
+
+        Returns bool rather than raising, because the realistic failure is
+        "you targeted the wrong name" and a silent no-op would hide exactly the
+        bug that name-based targeting makes likely. Check the return value.
+
+        :param op: Event hook to remove from
+        :param name: Name of handler to remove
+        :return: True if a handler was removed, False if the op or name was not
+        registered.
+        """
+        op = self._resolve(op)
+        if name is None:
+            return False
+        name = self._resolve(name)
+        handlers = self._handlers.get(op)
+        if not handlers or name not in handlers:
+            return False
+        del handlers[name]
+        print(f"    Handler {name} removed from {op}.")
+        return True
+
     # -- Handler retrieval ----------------------------------------------------------
     # Looks up a handler record (or a whole op's dict) by name, shared by
     # get_handler and dispatch.
@@ -127,6 +167,14 @@ class Registry:
     # -- Dispatch -------------------------------------------------------------------
     # Runs every handler registered under an op, each inside the namespace it was
     # registered under, passing the game state and registry to the handler.
+    #
+    # IMPORTANT — the list(...) snapshot is load-bearing. handlers.items() returns
+    # a LIVE view over the underlying dict, so a handler that calls
+    # unregister_handler() (on itself or another handler) while this loop is
+    # running would raise "RuntimeError: dictionary changed size during
+    # iteration". list(handlers.items()) copies the pairs up front, so the loop
+    # walks the set of handlers as it stood when dispatch began. Do NOT drop the
+    # list() wrapper.
     def dispatch(self, op: str, gameState:GameState):
         """
         Dispatch a hook/handler.
@@ -140,7 +188,7 @@ class Registry:
         """
         handlers=self.get_handler(op)
         if handlers:
-            for handlerName,record in handlers.items():
+            for handlerName,record in list(handlers.items()):
                 func=record["func"]
                 namespace=record["namespace"]
                 if namespace is not None:

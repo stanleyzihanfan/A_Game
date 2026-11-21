@@ -112,6 +112,13 @@ unmountAll()
 Tear down every view this registry has mounted. There is no automatic client
 lifecycle hook, so this is how mods/core clean up.
 
+Also removes every DOM listener registered through
+[`register_listener`](#register_listener): a listener usually drives a view, so
+leaving it attached after the view is gone means dead handlers firing against
+detached elements — and, after a reconnect, duplicated listeners on the same
+target. Styles are deliberately left alone; [`clearStyles`](#clearStyles) owns
+those.
+
 ### `get_el`
 
 ```javascript
@@ -169,6 +176,104 @@ uiRegistry.dispatch("health_damage", null, gameState);
 
 Handlers are called `func(payload, ui, gameState)`. If one throws, it's logged
 and re-thrown (with `e.handled = true`), and the namespace is restored.
+
+Handlers may safely call [`unregister_handler`](#unregister_handler) during
+dispatch (on themselves or another handler): `dispatch` iterates a snapshot, so
+the current dispatch is unaffected and the removal applies from the next one.
+
+### `unregister_handler`
+
+```javascript
+unregister_handler(event, name)   // -> true if removed, false if not found
+```
+
+Remove a UI event handler registered with [`on`](#on). Mirror of `on()`: same
+`(event, name)` pair. Returns `boolean`, so a mistyped name is visible rather
+than a silent no-op.
+
+## DOM listeners
+
+A listener handed straight to `target.addEventListener()` is unreachable
+afterwards: `removeEventListener` needs the *same* function reference and
+capture flag, so a closure created inline can never be uninstalled — not even by
+the mod that created it. `register_listener` makes the listener a named,
+addressable record instead, so it can be overwritten or removed by name (this is
+what lets an addon mod replace another mod's input handling).
+
+### `register_listener`
+
+```javascript
+register_listener(target, event, fn, name, opts = {})
+```
+
+Attach a DOM listener and remember it under `name`.
+
+```javascript
+uiRegistry.register_listener(document, "pointerdown", onPointerDown, "joy_down");
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `target` | `EventTarget` | `window`, `document`, or an element. |
+| `event` | `string` | DOM event type (`"pointerdown"`, `"keyup"`, …). |
+| `fn` | `Function` | Listener callback. |
+| `name` | `string` | **Required** unique name; auto-prefixed with the active namespace. |
+| `opts` | `object, optional` | `{ capture }` (default `false`); stored so removal passes a matching flag. |
+
+Returns the fully-qualified listener name.
+
+- **Registering an existing name replaces it.** The previous listener is
+  `removeEventListener`'d from its target first, then the new one is attached —
+  mirroring `register_handler`. Dropping the record without detaching would leave
+  a live, unbindable listener still firing.
+- **`name` is mandatory.** Handlers may be auto-named; a listener must not be,
+  because an auto-named listener could never be unregistered — which defeats the
+  only reason to use this instead of `addEventListener`.
+- **Use it for lifetime, not convenience.** A listener owned by a mod that can
+  disconnect/reconnect should be registered here so
+  [`unmountAll`](#unmountall) / [`clearListeners`](#clearlisteners) can clean it
+  up; otherwise a reconnect stacks a duplicate listener on the same target.
+
+> **Runtime note.** Like every other `uiRegistry` name, `name` resolves through
+> the active namespace. If you register or remove listeners *after* your mod's
+> script has finished evaluating (e.g. on a delayed mount or on disconnect), the
+> namespace stack is empty and an unqualified name throws. Capture the
+> fully-qualified name while the namespace is still active:
+>
+> ```javascript
+> // during eval:
+> const DOWN = uiRegistry.bindName("joy_down");   // -> "mymod:joy_down"
+> // later, namespace-free:
+> uiRegistry.register_listener(document, "pointerdown", fn, DOWN);
+> uiRegistry.unregister_listener(DOWN);
+> ```
+
+### `unregister_listener`
+
+```javascript
+unregister_listener(name)   // -> true if a listener was attached and removed
+```
+
+### `get_listener`
+
+```javascript
+get_listener(name)   // -> { target, event, fn, capture, namespace } | null
+```
+
+### `list_listeners`
+
+```javascript
+list_listeners()   // -> string[] of registered (fully-qualified) names
+```
+
+### `clearListeners`
+
+```javascript
+clearListeners()
+```
+
+Remove every listener registered through `register_listener`. Called
+automatically by [`unmountAll`](#unmountall).
 
 ## Styles
 

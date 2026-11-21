@@ -109,6 +109,37 @@ hook   = registry.get_handler("core:tick")                               # whole
 - Both `op` and `name` are resolved against the active namespace (so in a mod
   handler you can use unqualified names).
 
+## `unregister_handler`
+
+```python
+unregister_handler(op, name)   # -> bool: True if removed, False if not found
+```
+
+Remove a handler. Mirror of [`register_handler`](#register_handler): same
+`(op, name)` pair, one installs, one removes. `register_handler` can only
+**replace** a handler; this is how an addon mod disables a handler owned by
+another mod without supplying a substitute.
+
+```python
+# Disable another mod's handler by its registered name.
+registry.unregister_handler("core:tick", "player_position:movement_handler")
+```
+
+- Returns `bool`. A mistyped name is the realistic failure, so a silent no-op
+  would hide it — check the return value.
+- `op` and `name` resolve against the active namespace exactly as
+  `register_handler` resolves them. Note that this means an **unqualified** name
+  outside mod loading raises `RuntimeError` (same as `register_handler`), so
+  from core code always pass fully-qualified names.
+- Safe from inside a dispatched handler (including on itself): `dispatch`
+  iterates a snapshot of the hook, so the current dispatch runs to completion
+  and the removal applies from the next tick.
+
+> **Handler names are public API.** Renaming a handler an addon targets breaks
+> that addon silently. Bump the mod's major version when renaming, and addons
+> should pin: `"dependencies": ["base_mod@^0.1.0"]` — an unsatisfied version spec
+> causes the addon to be skipped with a warning instead of loading broken.
+
 ## `current_namespace()`
 
 Return the active namespace (`str`) or `None` if not inside mod loading.

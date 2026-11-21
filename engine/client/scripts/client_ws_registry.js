@@ -111,6 +111,45 @@ class Registry {
     }
 
     /**
+     * Remove a handler registered under an op.
+     *
+     * The mirror of register_handler(): same (op, name) pair, one removes what
+     * the other installs. This is how an addon mod disables a handler owned by
+     * another mod — register_handler() can only REPLACE one, and replacing is
+     * not the same as removing (you would have to supply a substitute with a
+     * compatible signature).
+     *
+     * Names are the contract. Because a handler's fully-qualified name is
+     * stable and visible (`get_handler(op)` returns the whole op's dict, so the
+     * registered names can be read at runtime), an addon does not need
+     * namespace filtering to find its target: it names it directly, e.g.
+     * `unregister_handler("core:tick", "player_position:movement_handler")`.
+     *
+     * The op is resolved through the active namespace exactly as
+     * register_handler() resolves it, so pass the op in the same form you
+     * registered it under ("core:tick" passes through untouched).
+     *
+     * Returns boolean rather than throwing, because the realistic failure is
+     * "you targeted the wrong name" and a silent no-op would hide exactly the
+     * bug that name-based targeting makes likely. Check the return value.
+     *
+     * @param {string} op - Name of event hook
+     * @param {string} name - Name of handler to remove
+     * @returns {boolean} True if a handler was removed, false if the op or name
+     * was not registered.
+     */
+    unregister_handler(op, name) {
+        op = this._resolve(op);
+        if (name === null || name === undefined) return false;
+        name = this._resolve(name);
+        const handlers = this._handlers[op];
+        if (!handlers || !Object.hasOwn(handlers, name)) return false;
+        delete handlers[name];
+        console.log(`    Handler ${name} removed from ${op}.`);
+        return true;
+    }
+
+    /**
      * Get a handler.
      *
      * @param {string} op - Event hook to look under
@@ -145,6 +184,15 @@ class Registry {
     // -- Dispatch -------------------------------------------------------------------
     // Runs every handler registered under an op, each inside the namespace it was
     // registered under, passing the game state and registry to the handler.
+    //
+    // IMPORTANT — the snapshot is load-bearing. Object.entries() copies the keys
+    // into an array up front, so a handler that calls unregister_handler() (on
+    // itself or another handler) while this loop is running cannot corrupt the
+    // iteration: the loop walks the list as it was when dispatch began. Do NOT
+    // "optimise" this into `for (const k in handlers)` or a live
+    // Object.keys() lookup per step — that would turn a mid-dispatch
+    // unregister into skipped handlers (and, historically, the exact class of
+    // bug that makes removals look unreliable).
     dispatch(op, gameState) {
         const handlers = this.get_handler(op);
         if (handlers) {
